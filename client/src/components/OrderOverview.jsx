@@ -118,8 +118,9 @@ const OrderOverview = () => {
                 }
             }
 
+            const data = await res.json();
             clearCart();
-            navigate('/delivery-details');
+            navigate(`/delivery-details/${data._id}`);
         } catch (err) {
             console.error('Order Error:', err);
             setError(err.message || 'Failed to place order. Please try again.');

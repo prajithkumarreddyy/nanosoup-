@@ -52,7 +52,21 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Check for user
+        // Check for specific admin (hardcoded for demo as requested)
+        if (email === 'prajith@nanosoup.com' && password === 'ppp') {
+            const token = jwt.sign({ id: 'admin_id_placeholder', role: 'admin' }, process.env.JWT_SECRET || 'nanosoup_secret_key_12345', { expiresIn: 3600 });
+            return res.json({
+                token,
+                user: {
+                    id: 'admin_id_placeholder',
+                    username: 'Admin',
+                    email: 'prajith@nanosoup.com',
+                    role: 'admin'
+                }
+            });
+        }
+
+        // Check for normal user
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ message: 'User does not exist' });
@@ -63,13 +77,14 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'nanosoup_secret_key_12345', { expiresIn: 3600 });
+        const token = jwt.sign({ id: user._id, role: 'user' }, process.env.JWT_SECRET || 'nanosoup_secret_key_12345', { expiresIn: 3600 });
         res.json({
             token,
             user: {
                 id: user._id,
                 username: user.username,
-                email: user.email
+                email: user.email,
+                role: 'user'
             }
         });
 

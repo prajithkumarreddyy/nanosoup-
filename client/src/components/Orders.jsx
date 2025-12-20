@@ -62,6 +62,9 @@ const Orders = () => {
 
 
         fetchOrders();
+
+        const interval = setInterval(fetchOrders, 3000);
+        return () => clearInterval(interval);
     }, []);
 
     if (loading) {
@@ -103,7 +106,7 @@ const Orders = () => {
                                     <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}</p>
                                 </div>
                                 <div className="mt-4 md:mt-0 flex items-center gap-3">
-                                    <span className={`px - 4 py - 1 rounded - full text - xs font - bold ${order.status === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-blue-600'
+                                    <span className={`px-4 py-1 rounded-full text-xs font-bold ${order.status === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-blue-600'
                                         } `}>
                                         {order.status || 'Processing'}
                                     </span>
@@ -132,9 +135,17 @@ const Orders = () => {
                                 >
                                     <span>🗑️</span> Delete Order
                                 </button>
-                                <button className="text-red-600 text-sm font-bold hover:underline">
-                                    Download Invoice
-                                </button>
+                                <div className="flex gap-3">
+                                    <Link
+                                        to={`/delivery-details/${order._id}`}
+                                        className="text-primary text-sm font-bold hover:underline px-4 py-2 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                    >
+                                        Track Order
+                                    </Link>
+                                    <button className="text-gray-600 text-sm font-bold hover:underline px-2 py-2">
+                                        Invoice
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}

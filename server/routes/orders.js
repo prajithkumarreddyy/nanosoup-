@@ -38,6 +38,71 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 });
 
+// @route   GET /api/orders/all
+// @desc    Get all orders (Admin only)
+// @access  Private/Admin
+router.get('/all', [authMiddleware, require('../middleware/admin')], async (req, res) => {
+    try {
+        const orders = await Order.find()
+            .populate('user', ['username', 'email'])
+            .sort({ createdAt: -1 });
+        res.json(orders);
+    } catch (err) {
+        console.error(err.message);
+        const ordersFallback = await Order.find().sort({ createdAt: -1 });
+        res.json(ordersFallback);
+    }
+});
+
+// @route   GET /api/orders/admin/:id
+// @desc    Get single order by ID (Admin only)
+// @access  Private/Admin
+router.get('/admin/:id', [authMiddleware, require('../middleware/admin')], async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id)
+            .populate('user', ['username', 'email', 'addresses']); // Populate user details
+
+        if (!order) {
+            return res.status(404).json({ msg: 'Order not found' });
+        }
+        res.json(order);
+    } catch (err) {
+        console.error(err.message);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ msg: 'Order not found' });
+        }
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/orders/admin/:id/status
+// @desc    Update order status
+// @access  Private/Admin
+router.put('/admin/:id/status', [authMiddleware, require('../middleware/admin')], async (req, res) => {
+    try {
+        const { status } = req.body;
+
+        // Validate status
+        const validStatuses = ['Processing', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ msg: 'Invalid status' });
+        }
+
+        let order = await Order.findById(req.params.id);
+        if (!order) {
+            return res.status(404).json({ msg: 'Order not found' });
+        }
+
+        order.status = status;
+        await order.save();
+
+        res.json(order);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   DELETE /api/orders/:id
 // @desc    Delete an order
 // @access  Private
