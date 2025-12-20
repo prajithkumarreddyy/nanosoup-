@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API_URL from '../config';
 
 const CustomerCare = () => {
     const [orders, setOrders] = useState([]);
@@ -23,7 +24,7 @@ const CustomerCare = () => {
         const fetchOrders = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:5000/api/orders', {
+                const res = await fetch(`${API_URL} /api/orders`, {
                     headers: {
                         'x-auth-token': token
                     }
@@ -52,7 +53,7 @@ const CustomerCare = () => {
         e.preventDefault();
 
         const newTicket = {
-            id: `TCK-${Date.now()}`,
+            id: `TCK - ${Date.now()} `,
             orderId: selectedOrder._id,
             orderDate: selectedOrder.createdAt,
             items: selectedOrder.items,
@@ -100,14 +101,14 @@ const CustomerCare = () => {
                 <div className="flex space-x-4 mb-8 border-b border-gray-200">
                     <button
                         onClick={() => setActiveTab('new')}
-                        className={`pb-4 px-4 font-bold text-sm transition-colors relative ${activeTab === 'new' ? 'text-red-600' : 'text-gray-500 hover:text-gray-800'}`}
+                        className={`pb - 4 px - 4 font - bold text - sm transition - colors relative ${activeTab === 'new' ? 'text-red-600' : 'text-gray-500 hover:text-gray-800'} `}
                     >
                         Report an Issue
                         {activeTab === 'new' && <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600 rounded-t-full"></div>}
                     </button>
                     <button
                         onClick={() => setActiveTab('pending')}
-                        className={`pb-4 px-4 font-bold text-sm transition-colors relative ${activeTab === 'pending' ? 'text-red-600' : 'text-gray-500 hover:text-gray-800'}`}
+                        className={`pb - 4 px - 4 font - bold text - sm transition - colors relative ${activeTab === 'pending' ? 'text-red-600' : 'text-gray-500 hover:text-gray-800'} `}
                     >
                         Pending Tickets
                         {tickets.length > 0 && <span className="ml-2 bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">{tickets.length}</span>}
@@ -144,13 +145,13 @@ const CustomerCare = () => {
                                             <div className="flex items-center gap-3 mb-2">
                                                 <span className="text-sm font-bold text-gray-900">#{order._id.slice(-6)}</span>
                                                 <span className="text-xs text-gray-400">• {new Date(order.createdAt).toLocaleDateString()}</span>
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${order.status === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-blue-600'
-                                                    }`}>
+                                                <span className={`px - 2 py - 0.5 rounded - full text - [10px] font - bold uppercase ${order.status === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-blue-600'
+                                                    } `}>
                                                     {order.status || 'Processing'}
                                                 </span>
                                             </div>
                                             <p className="text-gray-600 text-sm line-clamp-1">
-                                                {order.items.map(item => `${item.qty}x ${item.name}`).join(', ')}
+                                                {order.items.map(item => `${item.qty}x ${item.name} `).join(', ')}
                                             </p>
                                         </div>
                                         <button

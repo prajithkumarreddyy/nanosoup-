@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API_URL from '../config';
 
 const Orders = () => {
     const [orders, setOrders] = useState([]);
@@ -12,7 +13,7 @@ const Orders = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
+            const res = await fetch(`${API_URL} /api/orders / ${orderId} `, {
                 method: 'DELETE',
                 headers: {
                     'x-auth-token': token
@@ -36,7 +37,7 @@ const Orders = () => {
         const fetchOrders = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:5000/api/orders', {
+                const res = await fetch(`${API_URL} /api/orders`, {
                     headers: {
                         'x-auth-token': token
                     }
@@ -102,8 +103,8 @@ const Orders = () => {
                                     <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}</p>
                                 </div>
                                 <div className="mt-4 md:mt-0 flex items-center gap-3">
-                                    <span className={`px-4 py-1 rounded-full text-xs font-bold ${order.status === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-blue-600'
-                                        }`}>
+                                    <span className={`px - 4 py - 1 rounded - full text - xs font - bold ${order.status === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-blue-600'
+                                        } `}>
                                         {order.status || 'Processing'}
                                     </span>
                                     <span className="text-xl font-bold text-gray-900">₹{order.total.toFixed(2)}</span>

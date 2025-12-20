@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import API_URL from '../config';
 
-const SavedAddresses = () => {
+const SavedAddresses = ({ onSelect }) => {
     const [addresses, setAddresses] = useState([]);
     const [isAdding, setIsAdding] = useState(false);
     const [loading, setLoading] = useState(true);
