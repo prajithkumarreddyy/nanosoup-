@@ -13,7 +13,7 @@ const Orders = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL} /api/orders / ${orderId} `, {
+            const res = await fetch(`${API_URL}/api/orders/${orderId}`, {
                 method: 'DELETE',
                 headers: {
                     'x-auth-token': token

@@ -22,7 +22,7 @@ const OrderOverview = () => {
             const token = localStorage.getItem('token');
             if (token) {
                 try {
-                    const res = await fetch('http://localhost:5000/api/user/addresses', {
+                    const res = await fetch(`${API_URL}/api/user/addresses`, {
                         headers: {
                             'x-auth-token': token
                         }

@@ -19,7 +19,7 @@ const SavedAddresses = ({ onSelect }) => {
     const fetchAddresses = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5000/api/user/addresses', {
+            const res = await fetch(`${API_URL}/api/user/addresses`, {
                 headers: {
                     'x-auth-token': token
                 }
@@ -49,7 +49,7 @@ const SavedAddresses = ({ onSelect }) => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5000/api/user/addresses', {
+            const res = await fetch(`${API_URL}/api/user/addresses`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
