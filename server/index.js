@@ -15,7 +15,6 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/user', require('./routes/user'));
-app.use('/api/payment', require('./routes/payment'));
 
 
 // MongoDB Connection

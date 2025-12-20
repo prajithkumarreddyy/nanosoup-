@@ -63,17 +63,6 @@ const OrderOverview = () => {
 
     const [error, setError] = useState('');
 
-    // Load Razorpay Script
-    const loadRazorpay = () => {
-        return new Promise((resolve) => {
-            const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-            script.onload = () => resolve(true);
-            script.onerror = () => resolve(false);
-            document.body.appendChild(script);
-        });
-    };
-
     const handlePlaceOrder = async (e) => {
         e.preventDefault();
 
@@ -91,94 +80,49 @@ const OrderOverview = () => {
 
         setError('');
 
+        const orderData = {
+            items: cart.map(item => ({
+                name: item.name,
+                qty: item.qty,
+                price: item.price,
+                imageUrl: item.imageUrl
+            })),
+            total: total + 40 + (total * 0.05), // Total + Delivery + Tax
+            address
+        };
+
         try {
-            // 1. Create Order in Backend to get OrderId
-            const orderAmount = Math.round((total + 40 + (total * 0.05)) * 100); // Convert to paisa
-            const orderRes = await fetch(`${API_URL}/api/payment/order`, {
+            const res = await fetch(`${API_URL}/api/orders`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
                 },
-                body: JSON.stringify({ amount: orderAmount })
+                body: JSON.stringify(orderData)
             });
 
-            if (!orderRes.ok) throw new Error("Failed to start payment");
-            const orderData = await orderRes.json();
+            if (!res.ok) {
+                if (res.status === 401) {
+                    logout();
+                    alert('Your session has expired. Please sign in again.');
+                    navigate('/');
+                    return;
+                }
 
-            // 2. Load script
-            const res = await loadRazorpay();
-            if (!res) {
-                alert('Razorpay SDK failed to load. Are you online?');
-                return;
+                const errorData = await res.text();
+                try {
+                    const parsedError = JSON.parse(errorData);
+                    throw new Error(parsedError.message || parsedError.msg || 'Failed to place order');
+                } catch (e) {
+                    throw new Error(errorData || 'Failed to place order');
+                }
             }
 
-            // 3. Open Razorpay
-            const options = {
-                key: process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_PLACEHOLDER', // Enter the Key ID generated from the Dashboard
-                amount: orderData.amount,
-                currency: orderData.currency,
-                name: "Nanosoup",
-                description: "Delicious Food Order",
-                image: "/favicon.png", // Use favicon
-                order_id: orderData.id,
-                handler: async function (response) {
-                    // 4. Payment Success - Save Order to DB
-                    const finalOrderData = {
-                        items: cart.map(item => ({
-                            name: item.name,
-                            qty: item.qty,
-                            price: item.price,
-                            imageUrl: item.imageUrl
-                        })),
-                        total: total + 40 + (total * 0.05),
-                        address,
-                        paymentInfo: {
-                            id: response.razorpay_payment_id,
-                            status: 'Paid'
-                        }
-                    };
-
-                    try {
-                        const saveRes = await fetch(`${API_URL}/api/orders`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'x-auth-token': token
-                            },
-                            body: JSON.stringify(finalOrderData)
-                        });
-
-                        if (saveRes.ok) {
-                            clearCart();
-                            navigate('/delivery-details');
-                        } else {
-                            alert("Payment successful but order saving failed. Please contact support.");
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert("Payment successful but order saving failed.");
-                    }
-                },
-                prefill: {
-                    name: "Nanosoup User",
-                    email: "user@example.com",
-                    contact: address.phone
-                },
-                notes: {
-                    address: `${address.street}, ${address.city}`
-                },
-                theme: {
-                    color: "#ef4444" // red-500
-                }
-            };
-
-            const paymentObject = new window.Razorpay(options);
-            paymentObject.open();
-
+            clearCart();
+            navigate('/delivery-details');
         } catch (err) {
-            console.error('Payment Error:', err);
-            setError('Payment initialization failed. Please try again.');
+            console.error('Order Error:', err);
+            setError(err.message || 'Failed to place order. Please try again.');
         }
     };
 
