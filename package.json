@@ -1,10 +1,4 @@
 {
-  "scripts": {
-    "install-client": "cd client && npm install",
-    "install-server": "cd server && npm install",
-    "build": "npm run install-client && npm run install-server && cd client && npm run build",
-    "start": "cd server && node index.js"
-  },
   "dependencies": {
     "razorpay": "^2.9.6"
   }
