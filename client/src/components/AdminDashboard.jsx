@@ -29,6 +29,7 @@ const AdminDashboard = () => {
             setOrders(data);
             setLoading(false);
         } catch (err) {
+            console.error("AdminDashboard Fetch Error:", err);
             setError(err.message);
             setLoading(false);
         }
@@ -222,8 +223,8 @@ const AdminDashboard = () => {
                     <button
                         onClick={() => setViewMode('all')}
                         className={`px-6 py-3 rounded-xl font-bold transition-all ${viewMode === 'all'
-                                ? 'bg-gray-900 text-white shadow-lg scale-105'
-                                : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+                            ? 'bg-gray-900 text-white shadow-lg scale-105'
+                            : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
                             }`}
                     >
                         All Orders
@@ -231,8 +232,8 @@ const AdminDashboard = () => {
                     <button
                         onClick={() => setViewMode('monthly')}
                         className={`px-6 py-3 rounded-xl font-bold transition-all ${viewMode === 'monthly'
-                                ? 'bg-gray-900 text-white shadow-lg scale-105'
-                                : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+                            ? 'bg-gray-900 text-white shadow-lg scale-105'
+                            : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
                             }`}
                     >
                         Monthly View
