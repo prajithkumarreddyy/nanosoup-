@@ -26,6 +26,10 @@ const OrderSchema = new mongoose.Schema({
         type: String,
         default: 'Processing'
     },
+    paymentInfo: {
+        id: String,
+        status: String
+    },
     createdAt: {
         type: Date,
         default: Date.now
