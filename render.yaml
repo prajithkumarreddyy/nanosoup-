@@ -24,7 +24,7 @@ services:
         fromService:
           type: web
           name: nanosoup-server
-          property: url
+          property: host
     routes:
       - type: rewrite
         source: /*
