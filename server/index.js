@@ -73,7 +73,7 @@ const seedData = async () => {
             description: "Layered pasta with rich meat sauce, bechamel, and melted cheese.",
             price: 480,
             category: "Italian",
-            imageUrl: "https://images.unsplash.com/photo-1574868233977-455b9d71440d?q=80&w=2070&auto=format&fit=crop",
+            imageUrl: "https://images.unsplash.com/photo-1619895092538-128341789043?q=80&w=2070&auto=format&fit=crop",
             isVegetarian: false
         },
 
@@ -133,7 +133,7 @@ const seedData = async () => {
             description: "Soft, oven-baked flatbread topped with garlic and butter.",
             price: 60,
             category: "Indian",
-            imageUrl: "https://images.unsplash.com/photo-1626074353765-5ea1d4719601?q=80&w=1974&auto=format&fit=crop",
+            imageUrl: "https://images.unsplash.com/photo-1630409351241-e90e7f5e478d?q=80&w=1974&auto=format&fit=crop",
             isVegetarian: true
         },
 
@@ -160,7 +160,7 @@ const seedData = async () => {
             description: "Rice, beans, grilled chicken, salsa, guacamole, and cheese in a bowl.",
             price: 340,
             category: "Mexican",
-            imageUrl: "https://images.unsplash.com/photo-1579930965306-69a3014c25ce?q=80&w=1974&auto=format&fit=crop",
+            imageUrl: "https://images.unsplash.com/photo-1543353071-873f17a7a088?q=80&w=2070&auto=format&fit=crop",
             isVegetarian: false
         },
 
@@ -178,7 +178,7 @@ const seedData = async () => {
             description: "Wok-tossed noodles with crunchy vegetables and soy sauce.",
             price: 250,
             category: "Chinese",
-            imageUrl: "https://images.unsplash.com/photo-1612033448550-626591042717?q=80&w=2070&auto=format&fit=crop",
+            imageUrl: "https://images.unsplash.com/photo-1585032226651-759b368d7246?q=80&w=1892&auto=format&fit=crop",
             isVegetarian: true
         },
 
@@ -188,7 +188,7 @@ const seedData = async () => {
             description: "Fudgy chocolate brownie served with vanilla ice cream.",
             price: 180,
             category: "Desserts",
-            imageUrl: "https://images.unsplash.com/photo-1564355808539-22fda30bed7c?q=80&w=2070&auto=format&fit=crop",
+            imageUrl: "https://images.unsplash.com/photo-1606313564200-e75d5e30476d?q=80&w=1887&auto=format&fit=crop",
             isVegetarian: true
         },
         {
