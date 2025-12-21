@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const AuthModal = ({ isOpen, onClose }) => {
     const [error, setError] = useState('');
     const [isAdminLogin, setIsAdminLogin] = useState(false);
+    const navigate = useNavigate();
 
     // ... hooks ...
     const { login, register } = useAuth();
@@ -30,7 +32,7 @@ const AuthModal = ({ isOpen, onClose }) => {
             if (isAdminLogin) {
                 if (result.user.role === 'admin') {
                     onClose();
-                    window.location.href = '/admin';
+                    navigate('/admin');
                 } else {
                     setError('Unauthorized: You do not have admin access.');
                 }
@@ -113,8 +115,8 @@ const AuthModal = ({ isOpen, onClose }) => {
                     <button
                         type="submit"
                         className={`w-full py-3 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 ${isAdminLogin
-                                ? 'bg-gray-800 shadow-gray-200 hover:bg-gray-900'
-                                : 'bg-red-600 shadow-red-200 hover:bg-red-700'
+                            ? 'bg-gray-800 shadow-gray-200 hover:bg-gray-900'
+                            : 'bg-red-600 shadow-red-200 hover:bg-red-700'
                             }`}
                     >
                         {isLogin ? (isAdminLogin ? 'Login as Admin' : 'Sign In') : 'Create Account'}
