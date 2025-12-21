@@ -14,6 +14,23 @@ const OrderOverview = () => {
         zip: '',
         phone: ''
     });
+
+    // Load draft from local storage on mount
+    useEffect(() => {
+        const draft = localStorage.getItem('checkoutAddressDraft');
+        if (draft && savedAddresses.length === 0) {
+            try {
+                setAddress(JSON.parse(draft));
+            } catch (e) {
+                console.error("Failed to parse address draft", e);
+            }
+        }
+    }, [savedAddresses]);
+
+    // Save draft on change
+    useEffect(() => {
+        localStorage.setItem('checkoutAddressDraft', JSON.stringify(address));
+    }, [address]);
     const [savedAddresses, setSavedAddresses] = useState([]);
     const [selectedAddressIndex, setSelectedAddressIndex] = useState("");
 

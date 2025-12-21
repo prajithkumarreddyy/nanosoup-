@@ -6,7 +6,11 @@ const AdminDashboard = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [viewMode, setViewMode] = useState('all'); // 'all' or 'monthly'
+    const [viewMode, setViewMode] = useState(localStorage.getItem('adminViewMode') || 'all');
+
+    useEffect(() => {
+        localStorage.setItem('adminViewMode', viewMode);
+    }, [viewMode]);
     const navigate = useNavigate();
 
     const fetchOrders = useCallback(async () => {
