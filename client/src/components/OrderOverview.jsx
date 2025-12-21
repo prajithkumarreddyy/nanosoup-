@@ -15,6 +15,9 @@ const OrderOverview = () => {
         phone: ''
     });
 
+    const [savedAddresses, setSavedAddresses] = useState([]);
+    const [selectedAddressIndex, setSelectedAddressIndex] = useState("");
+
     // Load draft from local storage on mount
     useEffect(() => {
         const draft = localStorage.getItem('checkoutAddressDraft');
@@ -31,8 +34,6 @@ const OrderOverview = () => {
     useEffect(() => {
         localStorage.setItem('checkoutAddressDraft', JSON.stringify(address));
     }, [address]);
-    const [savedAddresses, setSavedAddresses] = useState([]);
-    const [selectedAddressIndex, setSelectedAddressIndex] = useState("");
 
     useEffect(() => {
         const fetchAddresses = async () => {
