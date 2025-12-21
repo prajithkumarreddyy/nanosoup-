@@ -26,7 +26,13 @@ const AdminDashboard = () => {
             }
 
             const data = await response.json();
-            setOrders(data);
+
+            if (Array.isArray(data)) {
+                setOrders(data);
+            } else {
+                console.error("API returned non-array:", data);
+                setOrders([]);
+            }
             setLoading(false);
         } catch (err) {
             console.error("AdminDashboard Fetch Error:", err);
