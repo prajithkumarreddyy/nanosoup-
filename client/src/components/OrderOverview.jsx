@@ -46,7 +46,12 @@ const OrderOverview = () => {
                     });
                     if (res.ok) {
                         const data = await res.json();
-                        setSavedAddresses(data);
+                        if (Array.isArray(data)) {
+                            setSavedAddresses(data);
+                        } else {
+                            console.error("API returned non-array addresses:", data);
+                            setSavedAddresses([]);
+                        }
                         if (data.length > 0) {
                             // Auto fill first address
                             setSelectedAddressIndex(0);
