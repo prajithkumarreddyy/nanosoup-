@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
@@ -10,6 +10,7 @@ const Navbar = ({ onOpenAuth }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
     const navigate = useNavigate();
+    const location = useLocation();
     const timeoutRef = React.useRef(null);
     const profileRef = React.useRef(null);
 
@@ -27,7 +28,7 @@ const Navbar = ({ onOpenAuth }) => {
         if (value.trim()) {
             setSearchParams({ search: value });
             // If not on home page, go to home to see results
-            if (window.location.pathname !== '/') {
+            if (location.pathname !== '/') {
                 navigate(`/?search=${value}`);
             }
         } else {
