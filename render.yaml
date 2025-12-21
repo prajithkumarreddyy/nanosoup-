@@ -12,9 +12,9 @@ services:
       - key: NODE_ENV
         value: production
 
+staticSites:
   # The Frontend Static Site
-  - type: static
-    name: nanosoup-client
+  - name: nanosoup-client
     rootDir: client
     buildCommand: npm install && npm run build
     publishDir: dist
