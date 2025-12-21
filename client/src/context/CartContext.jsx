@@ -13,7 +13,13 @@ export const CartProvider = ({ children }) => {
         // Load cart from local storage
         const storedCart = localStorage.getItem('cart');
         if (storedCart) {
-            setCart(JSON.parse(storedCart));
+            try {
+                const parsed = JSON.parse(storedCart);
+                setCart(Array.isArray(parsed) ? parsed : []);
+            } catch (e) {
+                console.error("Failed to parse cart", e);
+                setCart([]);
+            }
         }
     }, []);
 
