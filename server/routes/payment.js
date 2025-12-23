@@ -7,7 +7,7 @@ const Order = require('../models/Order');
 // Initialize Cashfree
 Cashfree.XClientId = process.env.CASHFREE_APP_ID;
 Cashfree.XClientSecret = process.env.CASHFREE_SECRET_KEY;
-Cashfree.XEnvironment = Cashfree.Environment.PRODUCTION;
+Cashfree.XEnvironment = Cashfree.Environment.SANDBOX; // Change to PRODUCTION when live
 
 // @route   POST /api/payment/create-order
 // @desc    Create a Cashfree payment order
@@ -23,8 +23,12 @@ router.post('/create-order', authMiddleware, async (req, res) => {
         let cleanPhone = customerPhone.replace(/\D/g, '');
         if (cleanPhone.length > 10) cleanPhone = cleanPhone.slice(-10);
 
-        // Default to localhost if not provided (for development)
-        const finalReturnUrl = returnUrl || `http://localhost:5173/delivery-details/${orderId}?status={order_status}`;
+        // Force specific return URL structure
+        const baseUrl = "http://localhost:5173"; // Hardcoded for dev reliability
+        const finalReturnUrl = `${baseUrl}/payment-status?order_id=${orderId}&status={order_status}`;
+
+        console.log("Constructed Return URL:", finalReturnUrl);
+
 
         const request = {
             order_amount: numericAmount,

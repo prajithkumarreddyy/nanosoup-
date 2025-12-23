@@ -7,6 +7,7 @@ import { CartProvider } from './context/CartContext';
 import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
 import OrderOverview from './components/OrderOverview';
+import PaymentStatus from './components/PaymentStatus';
 import Orders from './components/Orders';
 import OrderTracking from './components/OrderTracking';
 import SavedAddresses from './components/SavedAddresses';
@@ -73,6 +74,7 @@ function AppContent() {
                         </>
                     } />
                     <Route path="/checkout" element={<OrderOverview />} />
+                    <Route path="/payment-status" element={<PaymentStatus />} />
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/addresses" element={<SavedAddresses />} />
                     <Route path="/delivery-details/:orderId" element={<OrderTracking />} />

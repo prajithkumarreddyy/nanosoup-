@@ -16,21 +16,18 @@ const OrderOverview = () => {
     const [error, setError] = useState(null);
 
     const [paymentErrorPopup, setPaymentErrorPopup] = useState(false);
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
     const location = useLocation();
 
     // Handle Cashfree Return Redirect
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
-        const status = searchParams.get('status');
-        const orderId = searchParams.get('order_id');
+        const errorParam = searchParams.get('error');
 
-        if (status && orderId) {
-            if (status === 'SUCCESS') {
-                clearCart();
-                navigate(`/delivery-details/${orderId}?status=SUCCESS`);
-            } else {
-                setPaymentErrorPopup(true);
-            }
+        if (errorParam === 'PAYMENT_FAILED') {
+            setPaymentErrorPopup(true);
+            // Clean up URL
+            navigate('/checkout', { replace: true });
         }
     }, [location]);
 
@@ -108,9 +105,9 @@ const OrderOverview = () => {
                     orderId: order._id,
                     amount: total,
                     customerPhone: address.phone,
-                    // You might want to get these from user context or form
                     customerName: "Guest User",
-                    customerEmail: "guest@example.com"
+                    customerEmail: "guest@example.com",
+                    returnUrl: `${window.location.origin}/payment-status?order_id=${order._id}&status={order_status}`
                 })
             });
 
@@ -123,13 +120,13 @@ const OrderOverview = () => {
 
             // 3. Load Cashfree SDK and Checkout
             const cashfree = await load({
-                mode: "production"
+                mode: "sandbox" // Change to "production" for live
             });
 
             const checkoutOptions = {
                 paymentSessionId: paymentSession.payment_session_id,
                 redirectTarget: "_self", // "_self", "_blank", or container element
-                returnUrl: `${window.location.origin}/delivery-details/${order._id}?status={order_status}` // Fallback if SDK doesn't redirect
+                returnUrl: `${window.location.origin}/payment-status?order_id=${order._id}&status={order_status}`
             };
 
             cashfree.checkout(checkoutOptions);
@@ -139,6 +136,16 @@ const OrderOverview = () => {
             console.error(err);
         }
     };
+
+    if (isProcessingPayment) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center pt-20">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-500 mb-4"></div>
+                <h2 className="text-2xl font-bold text-gray-800">Processing Payment...</h2>
+                <p className="text-gray-500 mt-2">Please do not refresh the page</p>
+            </div>
+        );
+    }
 
     if (cart.length === 0) {
         return (
