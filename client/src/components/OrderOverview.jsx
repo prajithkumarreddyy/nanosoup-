@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { load } from '@cashfreepayments/cashfree-js';
 import API_URL from '../config';
 
 const OrderOverview = () => {
@@ -13,6 +14,25 @@ const OrderOverview = () => {
     const [savedAddresses, setSavedAddresses] = useState([]);
     const [selectedAddressIndex, setSelectedAddressIndex] = useState("");
     const [error, setError] = useState(null);
+
+    const [paymentErrorPopup, setPaymentErrorPopup] = useState(false);
+    const location = useLocation();
+
+    // Handle Cashfree Return Redirect
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const status = searchParams.get('status');
+        const orderId = searchParams.get('order_id');
+
+        if (status && orderId) {
+            if (status === 'SUCCESS') {
+                clearCart();
+                navigate(`/delivery-details/${orderId}?status=SUCCESS`);
+            } else {
+                setPaymentErrorPopup(true);
+            }
+        }
+    }, [location]);
 
     useEffect(() => {
         if (!token) return;
@@ -48,6 +68,7 @@ const OrderOverview = () => {
         }
 
         try {
+            // 1. Create Order in Backend (Pending Payment)
             const orderData = {
                 items: cart.map(item => ({
                     item: item._id,
@@ -57,10 +78,10 @@ const OrderOverview = () => {
                 })),
                 total,
                 address,
-                paymentMethod: 'COD'
+                paymentMethod: 'ONLINE' // Changed from COD
             };
 
-            const res = await fetch(`${API_URL}/api/orders`, {
+            const orderRes = await fetch(`${API_URL}/api/orders`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -69,16 +90,52 @@ const OrderOverview = () => {
                 body: JSON.stringify(orderData)
             });
 
-            if (res.ok) {
-                const data = await res.json();
-                clearCart();
-                navigate(`/delivery-details/${data._id}`);
-            } else {
-                const data = await res.json();
-                setError(data.message || "Failed to place order.");
+            if (!orderRes.ok) {
+                const data = await orderRes.json();
+                throw new Error(data.message || "Failed to create order");
             }
+
+            const order = await orderRes.json();
+
+            // 2. Initiate Cashfree Payment Session
+            const paymentRes = await fetch(`${API_URL}/api/payment/create-order`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token || localStorage.getItem('token')
+                },
+                body: JSON.stringify({
+                    orderId: order._id,
+                    amount: total,
+                    customerPhone: address.phone,
+                    // You might want to get these from user context or form
+                    customerName: "Guest User",
+                    customerEmail: "guest@example.com"
+                })
+            });
+
+            if (!paymentRes.ok) {
+                const data = await paymentRes.json();
+                throw new Error("Payment init failed: " + (data.message || "Unknown error"));
+            }
+
+            const paymentSession = await paymentRes.json();
+
+            // 3. Load Cashfree SDK and Checkout
+            const cashfree = await load({
+                mode: "production"
+            });
+
+            const checkoutOptions = {
+                paymentSessionId: paymentSession.payment_session_id,
+                redirectTarget: "_self", // "_self", "_blank", or container element
+                returnUrl: `${window.location.origin}/delivery-details/${order._id}?status={order_status}` // Fallback if SDK doesn't redirect
+            };
+
+            cashfree.checkout(checkoutOptions);
+
         } catch (err) {
-            setError("Network error. Please try again.");
+            setError(err.message || "Payment processing failed. Please try again.");
             console.error(err);
         }
     };
@@ -317,8 +374,40 @@ const OrderOverview = () => {
                         </div>
                     </div>
                 </div>
-            </div >
+            </div>
+
+            {/* Payment Failure Popup */}
+            {paymentErrorPopup && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-scale-up">
+                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl animate-shake">
+                            ❌
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h2>
+                        <p className="text-gray-500 mb-8">We couldn't process your payment. Please try again or use a different payment method.</p>
+
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setPaymentErrorPopup(false)}
+                                className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-all"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    setPaymentErrorPopup(false);
+                                    handlePlaceOrder(e);
+                                }}
+                                className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 transition-all"
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
+
     );
 };
 

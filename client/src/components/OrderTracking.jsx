@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import LiveTrackingMap from './LiveTrackingMap';
 import API_URL from '../config';
 
@@ -9,6 +9,20 @@ const OrderTracking = () => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+    const location = useLocation();
+
+    useEffect(() => {
+        // Check query params for payment status
+        const searchParams = new URLSearchParams(location.search);
+        const status = searchParams.get('status');
+        if (status === 'SUCCESS') {
+            setShowSuccessPopup(true);
+            // Optionally clear the query param so refresh doesn't show it again
+            // window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, [location]);
 
     useEffect(() => {
         const fetchOrder = async () => {
@@ -191,6 +205,29 @@ const OrderTracking = () => {
                         Track All Orders
                     </button>
                 </div>
+
+                {/* Payment Success Popup */}
+                {showSuccessPopup && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-scale-up relative overflow-hidden">
+                            {/* Confetti Background (simplified) */}
+                            <div className="absolute inset-0 pointer-events-none opacity-10 bg-[url('https://cdn.confetti.js.org/confetti.js')]"></div>
+
+                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl animate-bounce">
+                                ✅
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
+                            <p className="text-gray-500 mb-8">Thank you for your order. We've received your payment and are preparing your food!</p>
+
+                            <button
+                                onClick={() => setShowSuccessPopup(false)}
+                                className="w-full py-3 bg-green-500 text-white font-bold rounded-xl shadow-lg shadow-green-200 hover:bg-green-600 transition-all"
+                            >
+                                Track Order
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

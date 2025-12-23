@@ -23,6 +23,7 @@ app.use('/api/food', require('./routes/food'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/tickets', require('./routes/tickets'));
 app.use('/api/leaves', require('./routes/leaves'));
+app.use('/api/payment', require('./routes/payment'));
 
 
 // MongoDB Connection
