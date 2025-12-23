@@ -93,6 +93,16 @@ const AdminDashboard = () => {
         </div>
     );
 
+    // Helper to calculate revenue (Only Delivered orders, excluding tax/delivery)
+    const calculateRevenue = (data) => {
+        return data
+            .filter(order => order.status === 'Delivered')
+            .reduce((totalAcc, order) => {
+                const orderFoodTotal = order.items?.reduce((itemAcc, item) => itemAcc + ((item.price || 0) * (item.qty || 0)), 0) || 0;
+                return totalAcc + orderFoodTotal;
+            }, 0);
+    };
+
     const OrdersTable = ({ data, title }) => (
         <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden mb-8">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
@@ -110,7 +120,7 @@ const AdminDashboard = () => {
                 )}
                 {title !== 'All Recent Orders' && (
                     <div className="text-sm font-bold text-gray-600">
-                        Monthly Revenue: <span className="text-green-600">₹{data.reduce((acc, o) => acc + (o.total || 0), 0).toFixed(2)}</span>
+                        Monthly Revenue: <span className="text-green-600">₹{calculateRevenue(data).toFixed(2)}</span>
                     </div>
                 )}
             </div>
@@ -172,7 +182,7 @@ const AdminDashboard = () => {
                                 </td>
                                 <td className="p-5 align-top">
                                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
-                                        ${order.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                                        ${order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
                                             order.status === 'Processing' ? 'bg-orange-100 text-orange-700' :
                                                 'bg-gray-100 text-gray-700'}`}>
                                         {order.status || 'Processing'}
@@ -210,14 +220,15 @@ const AdminDashboard = () => {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden">
+                        <div className="absolute top-4 right-4 text-3xl opacity-20">📦</div>
                         <p className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-1">Total Orders</p>
                         <p className="text-4xl font-bold text-gray-900">{orders.length}</p>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                         <p className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-1">Total Revenue</p>
                         <p className="text-4xl font-bold text-green-600">
-                            ₹{orders.reduce((acc, order) => acc + (order.total || 0), 0).toFixed(2)}
+                            ₹{calculateRevenue(orders).toFixed(2)}
                         </p>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">

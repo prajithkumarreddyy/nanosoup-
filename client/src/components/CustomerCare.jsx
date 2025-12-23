@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Link } from 'react-router-dom';
 import API_URL from '../config';
 
@@ -15,30 +16,33 @@ const CustomerCare = () => {
     const [tickets, setTickets] = useState([]);
 
     useEffect(() => {
-        // Load tickets from local storage
-        const savedTickets = localStorage.getItem('supportTickets');
-        if (savedTickets) {
-            setTickets(JSON.parse(savedTickets));
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setLoading(false); // Stop loading if no token (guest)
+            return;
         }
 
-        const fetchOrders = async () => {
+        const fetchData = async () => {
             try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_URL}/api/orders`, {
-                    headers: {
-                        'x-auth-token': token
-                    }
+                // Fetch Orders (Only need to fetch once or less frequently, but keeping together for simplicity or separate if optimized)
+                // Actually, let's keep fetching both to ensure status updates on orders reflect too.
+                const orderRes = await fetch(`${API_URL}/api/orders`, {
+                    headers: { 'x-auth-token': token }
                 });
-
-                if (!res.ok) {
-                    setLoading(false);
-                    return;
+                if (orderRes.ok) {
+                    const orderData = await orderRes.json();
+                    if (Array.isArray(orderData)) setOrders(orderData);
                 }
 
-                const data = await res.json();
-                if (Array.isArray(data)) {
-                    setOrders(data);
+                // Fetch Tickets
+                const ticketRes = await fetch(`${API_URL}/api/tickets`, {
+                    headers: { 'x-auth-token': token }
+                });
+                if (ticketRes.ok) {
+                    const ticketData = await ticketRes.json();
+                    setTickets(ticketData);
                 }
+
             } catch (err) {
                 console.error(err);
             } finally {
@@ -46,37 +50,45 @@ const CustomerCare = () => {
             }
         };
 
-        fetchOrders();
+        fetchData(); // Initial
+        const interval = setInterval(fetchData, 3000); // Poll every 3s
+
+        return () => clearInterval(interval);
     }, []);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/api/tickets`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                },
+                body: JSON.stringify({
+                    orderId: selectedOrder._id,
+                    issueType,
+                    description
+                })
+            });
 
-        const newTicket = {
-            id: `TCK - ${Date.now()} `,
-            orderId: selectedOrder._id,
-            orderDate: selectedOrder.createdAt,
-            items: selectedOrder.items,
-            issueType,
-            description,
-            status: 'Pending',
-            createdAt: new Date().toISOString()
-        };
+            if (res.ok) {
+                const newTicket = await res.json();
+                setTickets([newTicket, ...tickets]);
 
-        const updatedTickets = [newTicket, ...tickets];
-        setTickets(updatedTickets);
-        localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
+                // Close modal
+                setSelectedOrder(null);
+                setDescription('');
+                setIssueType('Late Delivery');
 
-        // Close modal immediately
-        setSelectedOrder(null);
-        setDescription('');
-        setIssueType('Late Delivery');
-
-        // Show success message
-        setShowSuccess(true);
-        setTimeout(() => {
-            setShowSuccess(false);
-        }, 5000);
+                // Show success
+                setShowSuccess(true);
+                setTimeout(() => setShowSuccess(false), 5000);
+            }
+        } catch (error) {
+            console.error("Error creating ticket:", error);
+        }
     };
 
     if (loading) {
@@ -98,21 +110,37 @@ const CustomerCare = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex space-x-4 mb-8 border-b border-gray-200">
+                <div className="flex space-x-4 mb-8 border-b border-gray-200 overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('new')}
-                        className={`pb - 4 px - 4 font - bold text - sm transition - colors relative ${activeTab === 'new' ? 'text-red-600' : 'text-gray-500 hover:text-gray-800'} `}
+                        className={`pb-4 px-4 font-bold text-sm transition-colors relative whitespace-nowrap ${activeTab === 'new' ? 'text-red-600' : 'text-gray-500 hover:text-gray-800'}`}
                     >
                         Report an Issue
                         {activeTab === 'new' && <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600 rounded-t-full"></div>}
                     </button>
                     <button
                         onClick={() => setActiveTab('pending')}
-                        className={`pb - 4 px - 4 font - bold text - sm transition - colors relative ${activeTab === 'pending' ? 'text-red-600' : 'text-gray-500 hover:text-gray-800'} `}
+                        className={`pb-4 px-4 font-bold text-sm transition-colors relative whitespace-nowrap ${activeTab === 'pending' ? 'text-red-600' : 'text-gray-500 hover:text-gray-800'}`}
                     >
                         Pending Tickets
-                        {tickets.length > 0 && <span className="ml-2 bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">{tickets.length}</span>}
+                        {tickets.filter(t => t.status === 'Pending').length > 0 &&
+                            <span className="ml-2 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">
+                                {tickets.filter(t => t.status === 'Pending').length}
+                            </span>
+                        }
                         {activeTab === 'pending' && <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600 rounded-t-full"></div>}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('solved')}
+                        className={`pb-4 px-4 font-bold text-sm transition-colors relative whitespace-nowrap ${activeTab === 'solved' ? 'text-red-600' : 'text-gray-500 hover:text-gray-800'}`}
+                    >
+                        Solved Tickets
+                        {tickets.filter(t => t.status !== 'Pending').length > 0 &&
+                            <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">
+                                {tickets.filter(t => t.status !== 'Pending').length}
+                            </span>
+                        }
+                        {activeTab === 'solved' && <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600 rounded-t-full"></div>}
                     </button>
                 </div>
 
@@ -124,7 +152,7 @@ const CustomerCare = () => {
                 )}
 
                 {/* Content Area */}
-                {activeTab === 'new' ? (
+                {activeTab === 'new' && (
                     <div>
                         <p className="text-gray-500 mb-6">Select an order below to report an issue.</p>
 
@@ -145,8 +173,8 @@ const CustomerCare = () => {
                                             <div className="flex items-center gap-3 mb-2">
                                                 <span className="text-sm font-bold text-gray-900">#{order._id.slice(-6)}</span>
                                                 <span className="text-xs text-gray-400">• {new Date(order.createdAt).toLocaleDateString()}</span>
-                                                <span className={`px - 2 py - 0.5 rounded - full text - [10px] font - bold uppercase ${order.status === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-blue-600'
-                                                    } `}>
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${order.status === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-blue-600'
+                                                    }`}>
                                                     {order.status || 'Processing'}
                                                 </span>
                                             </div>
@@ -165,31 +193,36 @@ const CustomerCare = () => {
                             </div>
                         )}
                     </div>
-                ) : (
-                    // Pending Tickets Tab
+                )}
+
+                {activeTab === 'pending' && (
                     <div>
-                        {tickets.length === 0 ? (
+                        {tickets.filter(t => t.status === 'Pending').length === 0 ? (
                             <div className="text-center py-12 bg-white rounded-3xl border border-gray-100 shadow-sm">
                                 <div className="text-4xl mb-4">✅</div>
                                 <h3 className="text-xl font-bold text-gray-800 mb-2">No pending tickets</h3>
-                                <p className="text-gray-500">You haven't reported any issues yet.</p>
+                                <p className="text-gray-500">You have no open issues at the moment.</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {tickets.map(ticket => (
-                                    <div key={ticket.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                {tickets.filter(t => t.status === 'Pending').map(ticket => (
+                                    <div key={ticket._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                                         <div className="flex justify-between items-start mb-4">
                                             <div>
                                                 <div className="flex items-center gap-3 mb-1">
                                                     <span className="font-bold text-gray-900">{ticket.issueType}</span>
-                                                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold uppercase">{ticket.status}</span>
+                                                    <span className="px-2 py-0.5 rounded-full font-bold uppercase text-xs bg-yellow-100 text-yellow-700">
+                                                        {ticket.status}
+                                                    </span>
                                                 </div>
-                                                <p className="text-xs text-gray-400">ID: {ticket.id} • Raised on {new Date(ticket.createdAt).toLocaleDateString()}</p>
+                                                <p className="text-xs text-gray-400">ID: {ticket._id} • Raised on {new Date(ticket.createdAt).toLocaleDateString()}</p>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-xs font-bold text-gray-500 uppercase">Order Ref</p>
-                                                <p className="text-sm font-bold text-gray-900">#{ticket.orderId.slice(-6)}</p>
-                                            </div>
+                                            {ticket.order && (
+                                                <div className="text-right">
+                                                    <p className="text-xs font-bold text-gray-500 uppercase">Order Ref</p>
+                                                    <p className="text-sm font-bold text-gray-900">#{typeof ticket.order === 'object' ? ticket.order._id.slice(-6) : ticket.order.slice(-6)}</p>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-600 mb-4">
                                             <p>"{ticket.description}"</p>
@@ -204,10 +237,57 @@ const CustomerCare = () => {
                     </div>
                 )}
 
+                {activeTab === 'solved' && (
+                    <div>
+                        {tickets.filter(t => t.status !== 'Pending').length === 0 ? (
+                            <div className="text-center py-12 bg-white rounded-3xl border border-gray-100 shadow-sm">
+                                <div className="text-4xl mb-4">📜</div>
+                                <h3 className="text-xl font-bold text-gray-800 mb-2">No solved tickets</h3>
+                                <p className="text-gray-500">History of your resolved issues will appear here.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {tickets.filter(t => t.status !== 'Pending').map(ticket => (
+                                    <div key={ticket._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 opacity-90">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <span className="font-bold text-gray-900">{ticket.issueType}</span>
+                                                    <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-xs ${ticket.status === 'Solved' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>
+                                                        {ticket.status}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-gray-400">ID: {ticket._id} • Raised on {new Date(ticket.createdAt).toLocaleDateString()}</p>
+                                            </div>
+                                            {ticket.order && (
+                                                <div className="text-right">
+                                                    <p className="text-xs font-bold text-gray-500 uppercase">Order Ref</p>
+                                                    <p className="text-sm font-bold text-gray-900">#{typeof ticket.order === 'object' ? ticket.order._id.slice(-6) : ticket.order.slice(-6)}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-600 mb-4">
+                                            <p>"{ticket.description}"</p>
+                                        </div>
+
+                                        {ticket.adminReply && (
+                                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2">
+                                                <p className="text-xs font-bold text-blue-800 uppercase mb-1">Support Team Reply</p>
+                                                <p className="text-sm text-blue-900">{ticket.adminReply}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Help Modal */}
-                {selectedOrder && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 md:p-8 animate-scale-up">
+                {/* Help Modal */}
+                {selectedOrder && ReactDOM.createPortal(
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 md:p-8 relative">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold text-gray-900">Report Issue</h3>
                                 <button onClick={() => setSelectedOrder(null)} className="text-gray-400 hover:text-gray-600">
@@ -251,7 +331,8 @@ const CustomerCare = () => {
                                 </button>
                             </form>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
 
                 {/* General Inquiry Section */}

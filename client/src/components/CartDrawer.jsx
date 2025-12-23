@@ -1,9 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { getOptimizedImageUrl } from '../utils/imageUtils';
 
 const CartDrawer = () => {
-    const { cart, isOpen, toggleCart, updateQty, total, deliveryTime } = useCart();
+    const { cart, isOpen, toggleCart, updateQty, total, subtotal, taxAmount, deliveryFee, settings, deliveryTime } = useCart();
     const navigate = useNavigate();
 
     return (
@@ -39,7 +40,7 @@ const CartDrawer = () => {
                         ) : (
                             cart.map(item => (
                                 <div key={item._id} className="flex gap-4 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm animate-fade-in-up">
-                                    <img src={item.imageUrl} alt={item.name} className="w-20 h-20 object-cover rounded-xl" />
+                                    <img src={getOptimizedImageUrl(item.imageUrl, 200)} alt={item.name} className="w-20 h-20 object-cover rounded-xl" />
                                     <div className="flex-1 flex flex-col justify-between">
                                         <div>
                                             <h4 className="font-bold text-gray-800 line-clamp-1">{item.name}</h4>
@@ -59,9 +60,23 @@ const CartDrawer = () => {
                     {/* Footer */}
                     {cart.length > 0 && (
                         <div className="p-6 border-t border-gray-100 bg-white">
-                            <div className="flex justify-between items-center mb-6">
-                                <span className="text-gray-500">Subtotal</span>
-                                <span className="text-2xl font-bold text-gray-900">₹{total.toFixed(2)}</span>
+                            <div className="space-y-3 mb-6">
+                                <div className="flex justify-between items-center text-gray-600">
+                                    <span>Subtotal</span>
+                                    <span>₹{subtotal.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-gray-600">
+                                    <span>Tax ({settings.taxRate}%)</span>
+                                    <span>₹{taxAmount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-gray-600">
+                                    <span>Delivery Fee</span>
+                                    <span>₹{deliveryFee.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-3 border-t border-dashed border-gray-200">
+                                    <span className="font-bold text-gray-900">Total</span>
+                                    <span className="text-2xl font-bold text-gray-900">₹{total.toFixed(2)}</span>
+                                </div>
                             </div>
                             <button
                                 onClick={() => {

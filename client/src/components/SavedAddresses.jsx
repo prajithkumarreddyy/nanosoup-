@@ -12,6 +12,8 @@ const SavedAddresses = ({ onSelect }) => {
         phone: ''
     });
 
+    const [error, setError] = useState('');
+
     useEffect(() => {
         fetchAddresses();
     }, []);
@@ -26,13 +28,16 @@ const SavedAddresses = ({ onSelect }) => {
             });
 
             if (!res.ok) {
-                // Handle error (e.g., token expired)
+                if (res.status === 401 || res.status === 500) {
+                    setError("Session invalid. Please logout and login again.");
+                } else {
+                    setError("Failed to load addresses.");
+                }
                 setLoading(false);
                 return;
             }
 
             const data = await res.json();
-            // Ensure data is array before setting
             if (Array.isArray(data)) {
                 setAddresses(data);
             } else {
@@ -41,12 +46,14 @@ const SavedAddresses = ({ onSelect }) => {
             setLoading(false);
         } catch (err) {
             console.error(err);
+            setError("Network connection failed.");
             setLoading(false);
         }
     };
 
     const handleAddAddress = async (e) => {
         e.preventDefault();
+        setError('');
         try {
             const token = localStorage.getItem('token');
             const res = await fetch(`${API_URL}/api/user/addresses`, {
@@ -63,9 +70,13 @@ const SavedAddresses = ({ onSelect }) => {
                 setAddresses(updatedAddresses);
                 setIsAdding(false);
                 setNewAddress({ street: '', city: '', zip: '', phone: '' });
+            } else {
+                const data = await res.json();
+                setError(data.message || "Failed to save address. Try logging in again.");
             }
         } catch (err) {
             console.error(err);
+            setError("Failed to save address due to network error.");
         }
     };
 
@@ -83,6 +94,12 @@ const SavedAddresses = ({ onSelect }) => {
                         {isAdding ? 'Cancel' : '+ Add New Address'}
                     </button>
                 </div>
+
+                {error && (
+                    <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 border border-red-200">
+                        ⚠️ {error}
+                    </div>
+                )}
 
                 {isAdding && (
                     <div className="bg-white p-8 rounded-3xl shadow-lg border border-red-100 mb-8 animate-fade-in-up">

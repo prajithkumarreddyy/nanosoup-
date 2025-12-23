@@ -61,7 +61,8 @@ const admin = require('../middleware/admin');
 // @access  Private/Admin
 router.get('/all', [authMiddleware, admin], async (req, res) => {
     try {
-        const users = await User.find().select('-addresses -__v').sort({ createdAt: -1 });
+        const query = req.query.role ? { role: req.query.role } : {};
+        const users = await User.find(query).select('-addresses -__v').sort({ createdAt: -1 });
         res.json(users);
     } catch (err) {
         console.error(err.message);

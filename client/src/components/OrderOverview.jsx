@@ -5,177 +5,129 @@ import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 
 const OrderOverview = () => {
-    const { cart, total, clearCart } = useCart();
-    const { logout } = useAuth();
+    const { cart, subtotal, deliveryFee, taxAmount, total, clearCart, updateQty } = useCart();
+    const { token } = useAuth();
     const navigate = useNavigate();
-    const [address, setAddress] = useState({
-        street: '',
-        city: '',
-        zip: '',
-        phone: ''
-    });
 
+    const [address, setAddress] = useState({ street: '', city: '', zip: '', phone: '' });
     const [savedAddresses, setSavedAddresses] = useState([]);
     const [selectedAddressIndex, setSelectedAddressIndex] = useState("");
-
-    // Load draft from local storage on mount
-    useEffect(() => {
-        const draft = localStorage.getItem('checkoutAddressDraft');
-        if (draft && savedAddresses.length === 0) {
-            try {
-                setAddress(JSON.parse(draft));
-            } catch (e) {
-                console.error("Failed to parse address draft", e);
-            }
-        }
-    }, [savedAddresses]);
-
-    // Save draft on change
-    useEffect(() => {
-        localStorage.setItem('checkoutAddressDraft', JSON.stringify(address));
-    }, [address]);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchAddresses = async () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    const res = await fetch(`${API_URL}/api/user/addresses`, {
-                        headers: {
-                            'x-auth-token': token
-                        }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (Array.isArray(data)) {
-                            setSavedAddresses(data);
-                        } else {
-                            console.error("API returned non-array addresses:", data);
-                            setSavedAddresses([]);
-                        }
-                        if (data.length > 0) {
-                            // Auto fill first address
-                            setSelectedAddressIndex(0);
-                            setAddress({
-                                street: data[0].street || '',
-                                city: data[0].city || '',
-                                zip: data[0].zip || '',
-                                phone: data[0].phone || ''
-                            });
-                        }
+        if (!token) return;
+        fetch(`${API_URL}/api/user/addresses`, {
+            headers: { 'x-auth-token': token }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setSavedAddresses(data);
+                    if (data.length > 0) {
+                        const first = data[0];
+                        setSelectedAddressIndex(0);
+                        setAddress({
+                            street: first.street || '',
+                            city: first.city || '',
+                            zip: first.zip || '',
+                            phone: first.phone || ''
+                        });
                     }
-                } catch (err) {
-                    console.error("Failed to fetch addresses", err);
                 }
-            }
-        };
-        fetchAddresses();
-    }, []);
-
-    console.log('OrderOverview Render:', { cartLength: cart.length, address });
-
-    if (cart.length === 0) {
-        return (
-            <div className="min-h-screen pt-32 pb-12 px-4 flex flex-col items-center justify-center text-center">
-                <h2 className="text-3xl font-bold text-gray-800 mb-4">Your Cart is Empty</h2>
-                <p className="text-gray-500 mb-8">Add something delicious to proceed to checkout.</p>
-                <button onClick={() => navigate('/')} className="px-8 py-3 bg-primary text-white rounded-full font-bold shadow-lg hover:bg-red-600 transition-all">Go Home</button>
-            </div>
-        );
-    }
-
-    const [error, setError] = useState('');
+            })
+            .catch(err => console.error("Failed to load addresses", err));
+    }, [token]);
 
     const handlePlaceOrder = async (e) => {
         e.preventDefault();
+        setError(null);
 
-        // Basic Validation
         if (!address.street || !address.city || !address.zip || !address.phone) {
-            setError('Please fill in all address details to place your order.');
+            setError("Please fill in all address fields.");
             return;
         }
-
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setError('Please sign in to place an order.');
-            return;
-        }
-
-        setError('');
-
-        const orderData = {
-            items: cart.map(item => ({
-                name: item.name,
-                qty: item.qty,
-                price: item.price,
-                imageUrl: item.imageUrl
-            })),
-            total: total + 40 + (total * 0.05), // Total + Delivery + Tax
-            address
-        };
 
         try {
+            const orderData = {
+                items: cart.map(item => ({
+                    item: item._id,
+                    qty: item.qty,
+                    price: item.price,
+                    name: item.name
+                })),
+                total,
+                address,
+                paymentMethod: 'COD'
+            };
+
             const res = await fetch(`${API_URL}/api/orders`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-auth-token': token
+                    'x-auth-token': token || localStorage.getItem('token')
                 },
                 body: JSON.stringify(orderData)
             });
 
-            if (!res.ok) {
-                if (res.status === 401) {
-                    logout();
-                    alert('Your session has expired. Please sign in again.');
-                    navigate('/');
-                    return;
-                }
-
-                const errorData = await res.text();
-                try {
-                    const parsedError = JSON.parse(errorData);
-                    throw new Error(parsedError.message || parsedError.msg || 'Failed to place order');
-                } catch (e) {
-                    throw new Error(errorData || 'Failed to place order');
-                }
+            if (res.ok) {
+                const data = await res.json();
+                clearCart();
+                navigate(`/delivery-details/${data._id}`);
+            } else {
+                const data = await res.json();
+                setError(data.message || "Failed to place order.");
             }
-
-            const data = await res.json();
-            clearCart();
-            navigate(`/delivery-details/${data._id}`);
         } catch (err) {
-            console.error('Order Error:', err);
-            setError(err.message || 'Failed to place order. Please try again.');
+            setError("Network error. Please try again.");
+            console.error(err);
         }
     };
 
+    if (cart.length === 0) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center pt-20">
+                <h2 className="text-3xl font-bold text-gray-800 mb-4">Your cart is empty</h2>
+                <Link to="/" className="text-red-600 font-bold hover:underline">Browse Menu</Link>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen pt-32 pb-12 px-4 bg-gray-50">
+        <div className="min-h-screen bg-gray-50 pt-32 pb-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-6xl mx-auto">
-                <h1 className="text-3xl font-bold text-gray-900 mb-8">Order Details</h1>
+                <h1 className="text-3xl font-extrabold text-gray-900 mb-8">Checkout</h1>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left: Summary */}
+                    {/* Left Column: Cart & Address */}
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                                <span>🛒</span> Cart Items
-                            </h2>
-                            <div className="space-y-4">
-                                {cart.map(item => (
-                                    <div key={item._id} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
-                                        <div className="flex items-center gap-4">
-                                            <img src={item.imageUrl} alt={item.name} className="w-16 h-16 rounded-xl object-cover" />
-                                            <div>
-                                                <h4 className="font-bold text-gray-800">{item.name}</h4>
-                                                <p className="text-sm text-gray-500">Qty: {item.qty}</p>
+                        {/* Cart Items */}
+                        <div className="space-y-4">
+                            {cart.map(item => (
+                                <div key={item._id} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
+                                    <div className="flex items-center gap-4">
+                                        <img src={item.imageUrl} alt={item.name} className="w-16 h-16 rounded-xl object-cover" />
+                                        <div>
+                                            <h4 className="font-bold text-gray-800">{item.name}</h4>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <button
+                                                    onClick={() => updateQty(item._id, -1)}
+                                                    className="w-6 h-6 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold"
+                                                >
+                                                    -
+                                                </button>
+                                                <span className="text-sm font-bold text-gray-700 w-4 text-center">{item.qty}</span>
+                                                <button
+                                                    onClick={() => updateQty(item._id, 1)}
+                                                    className="w-6 h-6 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-red-600 hover:bg-red-50 font-bold"
+                                                >
+                                                    +
+                                                </button>
                                             </div>
                                         </div>
-                                        <p className="font-bold text-primary">₹{(item.price * item.qty).toFixed(2)}</p>
                                     </div>
-                                ))}
-                            </div>
+                                    <p className="font-bold text-primary">₹{(item.price * item.qty).toFixed(2)}</p>
+                                </div>
+                            ))}
                         </div>
 
                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
@@ -323,7 +275,7 @@ const OrderOverview = () => {
                     </div>
 
                     {/* Right: Total & Action */}
-                    <div className="lg:col-span-1">
+                    < div className="lg:col-span-1" >
                         <div className="bg-white p-6 rounded-3xl shadow-lg border border-red-50 sticky top-24">
                             <h2 className="text-xl font-bold mb-6">Order Summary</h2>
 
@@ -338,19 +290,19 @@ const OrderOverview = () => {
                             <div className="space-y-4 mb-6">
                                 <div className="flex justify-between text-gray-600">
                                     <span>Subtotal</span>
-                                    <span>₹{total.toFixed(2)}</span>
+                                    <span>₹{subtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-gray-600">
                                     <span>Delivery Fee</span>
-                                    <span>₹40.00</span>
+                                    <span>₹{deliveryFee.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-gray-600">
                                     <span>Taxes</span>
-                                    <span>₹{(total * 0.05).toFixed(2)}</span>
+                                    <span>₹{taxAmount.toFixed(2)}</span>
                                 </div>
                                 <div className="border-t border-gray-100 pt-4 flex justify-between font-bold text-xl text-gray-900">
                                     <span>Total</span>
-                                    <span>₹{(total + 40 + total * 0.05).toFixed(2)}</span>
+                                    <span>₹{total.toFixed(2)}</span>
                                 </div>
                             </div>
 
@@ -365,8 +317,8 @@ const OrderOverview = () => {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

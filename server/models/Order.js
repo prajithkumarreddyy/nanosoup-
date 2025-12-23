@@ -16,6 +16,11 @@ const OrderSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    deliveryFee: {
+        type: Number,
+        default: 40 // Fallback default
+    },
+
     address: {
         street: String,
         city: String,
@@ -29,6 +34,10 @@ const OrderSchema = new mongoose.Schema({
     paymentInfo: {
         id: String,
         status: String
+    },
+    deliveryPartner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     },
     createdAt: {
         type: Date,

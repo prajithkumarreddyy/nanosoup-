@@ -11,75 +11,51 @@ const Menu = ({ onOpenAuth }) => {
     const searchQuery = searchParams.get('search') || '';
 
     useEffect(() => {
-        setLoading(true);
-        fetch(`${API_URL}/api/food`)
-            .then(res => {
-                if (!res.ok) throw new Error('Network response was not ok');
-                return res.json();
-            })
-            .then(data => {
-                // If backend returns empty, we might use fallback
-                if (data.length === 0) {
-                    console.log("No items from backend, using fallback...");
-                    setFoods([
-                        {
-                            _id: '1',
-                            name: "Truffle Mushroom Risotto",
-                            description: "Creamy arborio rice with premium truffle oil and wild mushrooms.",
-                            price: 450,
-                            category: "Italian",
-                            imageUrl: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?q=80&w=2070&auto=format&fit=crop",
-                            isVegetarian: true
-                        },
-                        {
-                            _id: '2',
-                            name: "Spicy Miso Ramen",
-                            description: "Rich miso broth with chashu pork, soft-boiled egg, and green onions.",
-                            price: 380,
-                            category: "Japanese",
-                            imageUrl: "https://images.unsplash.com/photo-1557872943-16a5ac26437e?q=80&w=2031&auto=format&fit=crop",
-                            isVegetarian: false
-                        },
-                        {
-                            _id: '3',
-                            name: "Margherita Pizza",
-                            description: "Classic tomato sauce, fresh mozzarella, and basil on sourdough crust.",
-                            price: 350,
-                            category: "Italian",
-                            imageUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?q=80&w=2069&auto=format&fit=crop",
-                            isVegetarian: true
-                        },
-                        {
-                            _id: 'rice-test',
-                            name: "Rice Test",
-                            description: "Delicious steamed rice test item.",
-                            price: 1,
-                            category: "Indian",
-                            imageUrl: "https://images.unsplash.com/photo-1512058564366-18510be2db19?q=80&w=2072&auto=format&fit=crop",
-                            isVegetarian: true
-                        }
-                    ]);
-                } else {
-                    setFoods(data);
-                }
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Failed to fetch menu:", err);
-                // Fallback data
-                setFoods([
-                    {
-                        _id: '1',
-                        name: "Truffle Mushroom Risotto",
-                        description: "Creamy arborio rice with premium truffle oil and wild mushrooms.",
-                        price: 450,
-                        category: "Italian",
-                        imageUrl: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?q=80&w=2070&auto=format&fit=crop",
-                        isVegetarian: true
+        const fetchFood = (isInitial = false) => {
+            fetch(`${API_URL}/api/food`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.length === 0) {
+                        console.log("No items from backend, using fallback...");
+                        // Keep fallback logic if desired, or simplified
+                        setFoods([
+                            {
+                                _id: '1',
+                                name: "Truffle Mushroom Risotto",
+                                description: "Creamy arborio rice with premium truffle oil and wild mushrooms.",
+                                price: 450,
+                                category: "Italian",
+                                imageUrl: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?q=80&w=600&auto=format&fit=crop",
+                                isVegetarian: true
+                            },
+                            {
+                                _id: '2',
+                                name: "Spicy Miso Ramen",
+                                description: "Rich miso broth with chashu pork, soft-boiled egg, and green onions.",
+                                price: 380,
+                                category: "Japanese",
+                                imageUrl: "https://images.unsplash.com/photo-1557872943-16a5ac26437e?q=80&w=600&auto=format&fit=crop",
+                                isVegetarian: false
+                            },
+                        ]);
+                    } else {
+                        setFoods(data);
                     }
-                ]);
-                setLoading(false);
-            });
+                    if (isInitial) setLoading(false);
+                })
+                .catch(err => {
+                    console.error("Failed to fetch menu:", err);
+                    if (isInitial) setLoading(false);
+                });
+        };
+
+        fetchFood(true); // Initial fetch
+        const interval = setInterval(() => fetchFood(false), 5000); // Poll every 5s
+
+        return () => clearInterval(interval);
     }, []);
 
     const categories = ['All', ...new Set(foods.map(item => item.category))];

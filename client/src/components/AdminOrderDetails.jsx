@@ -7,42 +7,75 @@ const AdminOrderDetails = () => {
     const navigate = useNavigate();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
+
     const [updating, setUpdating] = useState(false);
     const [error, setError] = useState(null);
+    const [riders, setRiders] = useState([]);
 
-    useEffect(() => {
-        const fetchOrder = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`${API_URL}/api/orders/admin/${orderId}`, {
-                    headers: { 'x-auth-token': token }
-                });
-
-                if (!response.ok) throw new Error('Failed to fetch order details');
-
-                const data = await response.json();
-                setOrder(data);
-                setLoading(false);
-            } catch (err) {
+    const fetchOrder = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const orderRes = await fetch(`${API_URL}/api/orders/admin/${orderId}`, {
+                headers: { 'x-auth-token': token }
+            });
+            if (!orderRes.ok) throw new Error('Failed to fetch order details');
+            const orderData = await orderRes.json();
+            setOrder(orderData);
+            setLoading(false);
+        } catch (err) {
+            console.error("Error fetching order:", err);
+            // Don't set error state on polling failure to avoid UI flicker, just log it
+            // Only set error if it's the initial load
+            if (loading) {
                 setError(err.message);
                 setLoading(false);
             }
-        };
+        }
+    };
 
-        if (orderId) fetchOrder();
+    const fetchRiders = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const ridersRes = await fetch(`${API_URL}/api/user/all`, {
+                headers: { 'x-auth-token': token }
+            });
+            if (ridersRes.ok) {
+                const usersData = await ridersRes.json();
+                const riderList = usersData.filter(u => u.username.toLowerCase().includes('rider') || u.role === 'rider' || u.email.includes('rider'));
+                setRiders(riderList);
+            }
+        } catch (err) {
+            console.error("Error fetching riders:", err);
+        }
+    };
+
+    useEffect(() => {
+        if (orderId) {
+            fetchOrder();
+            fetchRiders();
+
+            // Poll for order updates every 3 seconds
+            const interval = setInterval(fetchOrder, 3000);
+            return () => clearInterval(interval);
+        }
     }, [orderId]);
 
-    const updateStatus = async (newStatus) => {
+    const updateStatus = async (newStatus, deliveryPartnerId = null) => {
         setUpdating(true);
         try {
             const token = localStorage.getItem('token');
+            const body = { status: newStatus };
+            if (deliveryPartnerId) {
+                body.deliveryPartner = deliveryPartnerId;
+            }
+
             const response = await fetch(`${API_URL}/api/orders/admin/${orderId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
                 },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify(body)
             });
 
             if (!response.ok) throw new Error('Failed to update status');
@@ -166,42 +199,104 @@ const AdminOrderDetails = () => {
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Update Status</h3>
                                 <div className="grid grid-cols-1 gap-3">
+                                    {/* Preparing Button */}
                                     <button
                                         onClick={() => updateStatus('Preparing')}
-                                        disabled={updating || order.status === 'Preparing'}
+                                        disabled={updating || order.status !== 'Processing'}
                                         className={`w-full py-3 px-4 rounded-xl font-semibold transition-all flex justify-between items-center
                                             ${order.status === 'Preparing'
                                                 ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 ring-offset-2'
-                                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700'}`}
+                                                : order.status === 'Processing'
+                                                    ? 'bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700'
+                                                    : 'bg-gray-50 text-gray-400 cursor-not-allowed'}`}
                                     >
                                         <span>Preparing Order</span>
                                         {order.status === 'Preparing' && <span>✓</span>}
                                     </button>
 
+                                    {/* Prepared Button */}
                                     <button
-                                        onClick={() => updateStatus('Out for Delivery')}
-                                        disabled={updating || order.status === 'Out for Delivery'}
+                                        onClick={() => updateStatus('Prepared')}
+                                        disabled={updating || (order.status !== 'Preparing' && order.status !== 'Processing')}
                                         className={`w-full py-3 px-4 rounded-xl font-semibold transition-all flex justify-between items-center
-                                            ${order.status === 'Out for Delivery'
-                                                ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-500 ring-offset-2'
-                                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700'}`}
+                                            ${order.status === 'Prepared'
+                                                ? 'bg-amber-100 text-amber-700 ring-2 ring-amber-500 ring-offset-2'
+                                                : (order.status === 'Preparing' || order.status === 'Processing')
+                                                    ? 'bg-white border border-gray-200 text-gray-700 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700'
+                                                    : 'bg-gray-50 text-gray-400 cursor-not-allowed'}`}
                                     >
-                                        <span>Out for Delivery</span>
-                                        {order.status === 'Out for Delivery' && <span>✓</span>}
-                                    </button>
-
-                                    <button
-                                        onClick={() => updateStatus('Delivered')}
-                                        disabled={updating || order.status === 'Delivered'}
-                                        className={`w-full py-3 px-4 rounded-xl font-semibold transition-all flex justify-between items-center
-                                            ${order.status === 'Delivered'
-                                                ? 'bg-green-100 text-green-700 ring-2 ring-green-500 ring-offset-2'
-                                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-green-50 hover:border-green-200 hover:text-green-700'}`}
-                                    >
-                                        <span>Delivered</span>
-                                        {order.status === 'Delivered' && <span>✓</span>}
+                                        <span>Order Prepared</span>
+                                        {order.status === 'Prepared' && <span>✓</span>}
                                     </button>
                                 </div>
+
+                                {/* Rider Assignment Section - Show only if status is Prepared AND no partner assigned yet (or re-assigning) */}
+                                {order.status === 'Prepared' && !order.deliveryPartner && (
+                                    <div className="mt-8 animate-fade-in-up">
+                                        <h3 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Assign Delivery Partner</h3>
+                                        {riders.length === 0 ? (
+                                            <p className="text-gray-500 italic">No riders found available.</p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {riders.map(rider => (
+                                                    <button
+                                                        key={rider._id}
+                                                        onClick={() => updateStatus('Prepared', rider._id)}
+                                                        disabled={updating}
+                                                        className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-primary hover:bg-red-50 transition-all group"
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-lg">
+                                                                    🛵
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-bold text-gray-900 group-hover:text-primary">{rider.username}</div>
+                                                                    <div className="text-xs text-gray-500">{rider.email}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-primary font-bold text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                Assign →
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Show assigned partner / Acceptance Status */}
+                                {order.deliveryPartner && (
+                                    <div className={`mt-6 p-4 rounded-xl border ${order.status === 'Prepared' ? 'bg-orange-50 border-orange-100' : 'bg-green-50 border-green-100'}`}>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <p className={`text-xs font-bold uppercase ${order.status === 'Prepared' ? 'text-orange-600' : 'text-green-600'}`}>
+                                                {order.status === 'Prepared' ? 'Waiting for Acceptance' : 'Assigned Partner'}
+                                            </p>
+                                            {order.status === 'Prepared' && (
+                                                <span className="text-xs px-2 py-1 bg-white rounded border border-orange-200 text-orange-600 font-bold animate-pulse">
+                                                    Pending
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-lg border border-gray-100">
+                                                {order.status === 'Prepared' ? '⏳' : '✅'}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-gray-900">{order.deliveryPartner.username || 'Partner'}</div>
+                                                <div className="text-xs text-gray-500">{order.deliveryPartner.email || 'No email'}</div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-3 text-xs text-gray-400">
+                                            {order.status === 'Prepared'
+                                                ? 'Rider needs to accept the order in their app.'
+                                                : order.status === 'Out for Delivery'
+                                                    ? 'Rider is on the way.'
+                                                    : 'Order Delivered.'}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

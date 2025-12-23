@@ -76,6 +76,8 @@ const OrderTracking = () => {
         switch (status) {
             case 'Preparing':
                 return { icon: '🍳', title: 'Preparing your Order', desc: 'Your food is being prepared with love.' };
+            case 'Prepared':
+                return { icon: '🥡', title: 'Order Prepared', desc: 'Waiting for rider to pickup your order.' };
             case 'Out for Delivery':
                 return { icon: '🛵', title: 'Out for Delivery', desc: 'Our hero is on the way!' };
             case 'Delivered':
@@ -105,9 +107,9 @@ const OrderTracking = () => {
 
                     {/* Timer */}
                     {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
-                        <div className="mb-8">
-                            <div className="inline-flex flex-col items-center bg-gray-50 px-8 py-4 rounded-2xl border border-gray-200">
-                                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-1">Arriving In</p>
+                        <div className="mb-10">
+                            <div className="inline-flex flex-col items-center bg-gray-50/50 backdrop-blur-sm px-10 py-6 rounded-3xl border border-gray-100 shadow-inner">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">Estimated Arrival</p>
                                 <CountdownTimer createdAt={order.createdAt} />
                             </div>
                         </div>
@@ -120,59 +122,73 @@ const OrderTracking = () => {
                         </div>
                     )}
 
-                    <div className="p-4 bg-green-50 rounded-2xl border border-green-100 inline-block">
-                        <p className="text-green-700 font-bold flex items-center gap-2">
-                            <span>🕒</span> Order ID: #{order._id.slice(-6).toUpperCase()}
+                    <div className="px-6 py-2 bg-green-50 rounded-full border border-green-100 inline-block shadow-sm">
+                        <p className="text-green-700 font-bold flex items-center gap-2 text-sm">
+                            <span className="animate-pulse">●</span> Order ID: #{order._id.slice(-6).toUpperCase()}
                         </p>
                     </div>
                 </div>
 
-                {/* Delivery Partner Card (Static for Demo) */}
+                {/* Delivery Partner / Status Card */}
                 {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
-                    <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 animate-slide-up">
-                        <h2 className="text-xl font-bold text-gray-900 mb-6">Delivery Partner</h2>
-                        <div className="flex items-center gap-6">
-                            {/* Avatar */}
-                            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md">
-                                <img src="/kethan.jpg" alt="Kethan" className="w-full h-full object-cover bg-gray-200" />
-                            </div>
+                    <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 animate-slide-up hover:shadow-2xl transition-shadow duration-300">
+                        {order.status === 'Out for Delivery' ? (
+                            <>
+                                <h2 className="text-md font-bold text-gray-400 uppercase tracking-wider mb-8">Delivery Partner</h2>
+                                <div className="flex items-center gap-8">
+                                    {/* Avatar */}
+                                    <div className="w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-xl flex items-center justify-center bg-gray-100 text-4xl transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+                                        {order.deliveryPartner?.avatar ? (
+                                            <img src={order.deliveryPartner.avatar} alt={order.deliveryPartner.username} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span>👤</span>
+                                        )}
+                                    </div>
 
-                            {/* Info */}
-                            <div className="flex-1">
-                                <h3 className="text-2xl font-bold text-gray-800">Kethan Reddy</h3>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-yellow-400 text-lg">★</span>
-                                    <span className="font-bold text-gray-700">4.8</span>
-                                    <span className="text-gray-400 text-sm">(500+ deliveries)</span>
+                                    {/* Info */}
+                                    <div className="flex-1">
+                                        <h3 className="text-3xl font-bold text-gray-800 mb-1">{order.deliveryPartner?.username || 'Assigned Partner'}</h3>
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="flex bg-yellow-400 text-white px-2 py-0.5 rounded-md text-sm font-bold shadow-sm">
+                                                ★ 4.9
+                                            </div>
+                                            <span className="text-gray-400 text-sm font-medium">1,240 deliveries</span>
+                                        </div>
+                                        <p className="text-gray-500 text-sm font-medium flex items-center gap-2">
+                                            <span>🏍️</span> Hero Splendor • KA-05-XY-9876
+                                        </p>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex flex-col gap-3">
+                                        <a href={`tel:${order.deliveryPartner?.mobile || ''}`} className="w-14 h-14 bg-green-500 text-white rounded-2xl flex items-center justify-center hover:bg-green-600 shadow-lg shadow-green-200 transition-all active:scale-95">
+                                            📞
+                                        </a>
+                                    </div>
                                 </div>
-                                <p className="text-gray-500 text-sm mt-1">Driving a Honda Activa • KA-05-AB-1234</p>
+                            </>
+                        ) : (
+                            <div className="text-center py-6">
+                                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl animate-bounce">
+                                    🛵
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-800 mb-2">Finding nearby partner...</h2>
+                                <p className="text-gray-400">We are matching you with the best delivery partner in your area.</p>
                             </div>
-
-                            {/* Actions */}
-                            <div className="flex flex-col gap-3">
-                                <a href="tel:+919876543210" className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center hover:bg-green-200 transition-colors">
-                                    📞
-                                </a>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center">
-                            <span className="text-gray-500 font-medium">Contact Kethan Reddy</span>
-                            <span className="font-bold text-gray-800">+91 98765 43210</span>
-                        </div>
+                        )}
                     </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                     <button
                         onClick={() => navigate('/')}
-                        className="py-4 bg-white text-gray-800 font-bold rounded-2xl shadow-sm border border-gray-200 hover:bg-gray-50 transition-all"
+                        className="py-4 bg-white text-gray-600 font-bold rounded-xl border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all"
                     >
                         Back to Home
                     </button>
-                    <button onClick={() => navigate('/orders')} className="py-4 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition-all">
-                        View All Orders
+                    <button onClick={() => navigate('/orders')} className="py-4 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-black transition-all transform hover:-translate-y-1">
+                        Track All Orders
                     </button>
                 </div>
             </div>
@@ -183,7 +199,7 @@ const OrderTracking = () => {
 export default OrderTracking;
 
 const CountdownTimer = ({ createdAt }) => {
-    const [timeLeft, setTimeLeft] = useState('');
+    const [timeLeft, setTimeLeft] = useState({ minutes: '00', seconds: '00' });
 
     useEffect(() => {
         const calculateTimeLeft = () => {
@@ -195,9 +211,12 @@ const CountdownTimer = ({ createdAt }) => {
             if (difference > 0) {
                 const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-                setTimeLeft(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+                setTimeLeft({
+                    minutes: minutes.toString().padStart(2, '0'),
+                    seconds: seconds.toString().padStart(2, '0')
+                });
             } else {
-                setTimeLeft('00:00');
+                setTimeLeft({ minutes: '00', seconds: '00' });
             }
         };
 
@@ -208,8 +227,22 @@ const CountdownTimer = ({ createdAt }) => {
     }, [createdAt]);
 
     return (
-        <span className="text-4xl font-mono font-bold text-gray-900 tracking-widest">
-            {timeLeft}
-        </span>
+        <div className="flex items-center gap-4">
+            <div className="text-center">
+                <div className="w-20 h-24 bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-center mb-2 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-gray-50 to-transparent opacity-50"></div>
+                    <span className="text-5xl font-bold text-gray-800 font-sans z-10">{timeLeft.minutes}</span>
+                </div>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Mins</span>
+            </div>
+            <div className="text-4xl font-bold text-gray-300 -mt-6">:</div>
+            <div className="text-center">
+                <div className="w-20 h-24 bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-center mb-2 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-gray-50 to-transparent opacity-50"></div>
+                    <span className="text-5xl font-bold text-red-500 font-sans z-10">{timeLeft.seconds}</span>
+                </div>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Secs</span>
+            </div>
+        </div>
     );
 };

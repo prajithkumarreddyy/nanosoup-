@@ -4,12 +4,14 @@ const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    mobile: { type: String },
     addresses: [{
         street: String,
         city: String,
         zip: String,
         phone: String
     }],
+    role: { type: String, default: 'user', enum: ['user', 'admin', 'employee', 'rider', 'chef'] },
     createdAt: { type: Date, default: Date.now }
 });
 

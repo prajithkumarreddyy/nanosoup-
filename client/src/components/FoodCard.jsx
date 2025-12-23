@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { getOptimizedImageUrl } from '../utils/imageUtils';
 
 const FoodCard = ({ food, onOpenAuth }) => {
     const { addToCart } = useCart();
@@ -18,7 +19,7 @@ const FoodCard = ({ food, onOpenAuth }) => {
         <div className="group bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-red-100">
             <div className="relative h-48 overflow-hidden">
                 <img
-                    src={food.imageUrl}
+                    src={getOptimizedImageUrl(food.imageUrl, 600)}
                     alt={food.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />

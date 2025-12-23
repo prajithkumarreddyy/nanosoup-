@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 // Register
 router.post('/register', async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, email, password, role, mobile } = req.body;
 
         // Simple validation
         if (!username || !email || !password) {
@@ -26,12 +26,14 @@ router.post('/register', async (req, res) => {
         const newUser = new User({
             username,
             email,
-            password
+            password,
+            mobile,
+            role: role || 'user'
         });
 
         const savedUser = await newUser.save();
 
-        const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET || 'nanosoup_secret_key_12345', { expiresIn: 3600 });
+        const token = jwt.sign({ id: savedUser._id, role: savedUser.role }, process.env.JWT_SECRET || 'nanosoup_secret_key_12345', { expiresIn: 3600 });
 
         res.status(201).json({
             token,
@@ -53,14 +55,29 @@ router.post('/login', async (req, res) => {
         const { email, password } = req.body;
 
         // Check for specific admin (hardcoded for demo as requested)
+        // Check for specific admin (hardcoded for demo as requested)
         if (email === 'prajith@nanosoup.com' && password === 'ppp') {
-            const token = jwt.sign({ id: 'admin_id_placeholder', role: 'admin' }, process.env.JWT_SECRET || 'nanosoup_secret_key_12345', { expiresIn: 3600 });
+            let adminUser = await User.findOne({ email: 'prajith@nanosoup.com' });
+
+            if (!adminUser) {
+                // Create the admin user if not exists
+                const newAdmin = new User({
+                    username: 'Admin',
+                    email: 'prajith@nanosoup.com',
+                    password: 'ppp', // In a real app, hash this
+                    role: 'admin',
+                    mobile: '0000000000'
+                });
+                adminUser = await newAdmin.save();
+            }
+
+            const token = jwt.sign({ id: adminUser._id, role: 'admin' }, process.env.JWT_SECRET || 'nanosoup_secret_key_12345', { expiresIn: 3600 });
             return res.json({
                 token,
                 user: {
-                    id: 'admin_id_placeholder',
-                    username: 'Admin',
-                    email: 'prajith@nanosoup.com',
+                    id: adminUser._id,
+                    username: adminUser.username,
+                    email: adminUser.email,
                     role: 'admin'
                 }
             });
@@ -77,14 +94,14 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const token = jwt.sign({ id: user._id, role: 'user' }, process.env.JWT_SECRET || 'nanosoup_secret_key_12345', { expiresIn: 3600 });
+        const token = jwt.sign({ id: user._id, role: user.role || 'user' }, process.env.JWT_SECRET || 'nanosoup_secret_key_12345', { expiresIn: 3600 });
         res.json({
             token,
             user: {
                 id: user._id,
                 username: user.username,
                 email: user.email,
-                role: 'user'
+                role: user.role || 'user'
             }
         });
 
