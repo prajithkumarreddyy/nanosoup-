@@ -14,6 +14,7 @@ const OrderTracking = () => {
     const location = useLocation();
 
     useEffect(() => {
+        console.log("OrderTracking Location State:", location.state);
         if (location.state?.paymentSuccess) {
             setShowSuccessPopup(true);
             // Clear state so it doesn't show on refresh
