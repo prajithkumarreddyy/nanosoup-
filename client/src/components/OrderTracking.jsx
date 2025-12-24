@@ -208,7 +208,7 @@ const OrderTracking = () => {
 
                 {/* Payment Success Popup */}
                 {showSuccessPopup && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-32 bg-black/50 backdrop-blur-sm animate-fade-in">
                         <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-scale-up relative overflow-hidden">
                             {/* Confetti Background */}
                             <div className="absolute inset-0 pointer-events-none opacity-10 bg-[url('https://cdn.confetti.js.org/confetti.js')]"></div>
