@@ -288,9 +288,9 @@ const Navbar = ({ onOpenAuth, isProfileOpen, setIsProfileOpen }) => {
                             {/* Cart Button - Hide for Admin/Employee */}
                             {isRegularUser && (
                                 <button onClick={toggleCart} className="p-2 rounded-full hover:bg-gray-100 transition-colors relative group">
-                                    <ShoppingBag className="h-6 w-6 text-gray-600 group-hover:text-primary transition-colors" />
+                                    <ShoppingBag className="h-6 w-6 text-gray-600 group-hover:text-red-600 transition-colors" />
                                     {count > 0 && (
-                                        <div className="absolute top-0 right-0 w-4 h-4 bg-primary text-white text-[10px] flex items-center justify-center rounded-full animate-bounce">
+                                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold flex items-center justify-center rounded-full border-2 border-white shadow-sm z-10">
                                             {count}
                                         </div>
                                     )}

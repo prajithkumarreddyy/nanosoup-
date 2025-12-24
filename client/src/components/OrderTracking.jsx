@@ -10,19 +10,10 @@ const OrderTracking = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const location = useLocation();
 
-    useEffect(() => {
-        // Check query params for payment status
-        const searchParams = new URLSearchParams(location.search);
-        const status = searchParams.get('status');
-        if (status === 'SUCCESS') {
-            setShowSuccessPopup(true);
-            // Optionally clear the query param so refresh doesn't show it again
-            // window.history.replaceState({}, document.title, window.location.pathname);
-        }
-    }, [location]);
+    // Removed Payment Success Popup Logic
+
 
     useEffect(() => {
         const fetchOrder = async () => {
@@ -206,28 +197,7 @@ const OrderTracking = () => {
                     </button>
                 </div>
 
-                {/* Payment Success Popup */}
-                {showSuccessPopup && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-scale-up relative overflow-hidden">
-                            {/* Confetti Background (simplified) */}
-                            <div className="absolute inset-0 pointer-events-none opacity-10 bg-[url('https://cdn.confetti.js.org/confetti.js')]"></div>
 
-                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl animate-bounce">
-                                ✅
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
-                            <p className="text-gray-500 mb-8">Thank you for your order. We've received your payment and are preparing your food!</p>
-
-                            <button
-                                onClick={() => setShowSuccessPopup(false)}
-                                className="w-full py-3 bg-green-500 text-white font-bold rounded-xl shadow-lg shadow-green-200 hover:bg-green-600 transition-all"
-                            >
-                                Track Order
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
@@ -268,7 +238,7 @@ const CountdownTimer = ({ createdAt }) => {
             <div className="text-center">
                 <div className="w-20 h-24 bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-center mb-2 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-gray-50 to-transparent opacity-50"></div>
-                    <span className="text-5xl font-bold text-gray-800 font-sans z-10">{timeLeft.minutes}</span>
+                    <span className="text-5xl font-bold text-gray-800 font-sans z-10 relative">{timeLeft.minutes}</span>
                 </div>
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Mins</span>
             </div>
@@ -276,7 +246,7 @@ const CountdownTimer = ({ createdAt }) => {
             <div className="text-center">
                 <div className="w-20 h-24 bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-center mb-2 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-gray-50 to-transparent opacity-50"></div>
-                    <span className="text-5xl font-bold text-red-500 font-sans z-10">{timeLeft.seconds}</span>
+                    <span className="text-5xl font-bold text-red-500 font-sans z-10 relative">{timeLeft.seconds}</span>
                 </div>
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Secs</span>
             </div>

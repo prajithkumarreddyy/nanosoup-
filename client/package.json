@@ -23,7 +23,6 @@
     "serve": "^14.2.1",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",
-    "vite": "^7.2.4",
-    "@cashfreepayments/cashfree-js": "^1.0.5"
+    "vite": "^7.2.4"
   }
 }
