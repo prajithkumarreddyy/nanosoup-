@@ -10,9 +10,16 @@ const OrderTracking = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const location = useLocation();
 
-    // Removed Payment Success Popup Logic
+    useEffect(() => {
+        if (location.state?.paymentSuccess) {
+            setShowSuccessPopup(true);
+            // Clear state so it doesn't show on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location]);
 
 
     useEffect(() => {
@@ -198,6 +205,29 @@ const OrderTracking = () => {
                 </div>
 
 
+
+                {/* Payment Success Popup */}
+                {showSuccessPopup && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-scale-up relative overflow-hidden">
+                            {/* Confetti Background */}
+                            <div className="absolute inset-0 pointer-events-none opacity-10 bg-[url('https://cdn.confetti.js.org/confetti.js')]"></div>
+
+                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl animate-bounce">
+                                ✅
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Placed!</h2>
+                            <p className="text-gray-500 mb-8">Payment Successful. Your food is being prepared with love!</p>
+
+                            <button
+                                onClick={() => setShowSuccessPopup(false)}
+                                className="w-full py-3 bg-green-500 text-white font-bold rounded-xl shadow-lg shadow-green-200 hover:bg-green-600 transition-all"
+                            >
+                                Track Order
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

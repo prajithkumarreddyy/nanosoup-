@@ -81,7 +81,7 @@ const OrderOverview = () => {
 
             // Clear cart and redirect to orders page or tracking
             clearCart();
-            navigate(`/delivery-details/${order._id}`);
+            navigate(`/delivery-details/${order._id}`, { state: { paymentSuccess: true } });
 
         } catch (err) {
             setError(err.message || "Order placement failed. Please try again.");
