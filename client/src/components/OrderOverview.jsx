@@ -6,14 +6,26 @@ import API_URL from '../config';
 
 const OrderOverview = () => {
     const { cart, subtotal, deliveryFee, taxAmount, total, clearCart, updateQty } = useCart();
-    const { token } = useAuth();
+    const { token, user } = useAuth(); // Need user for prefilling
     const navigate = useNavigate();
 
     const [address, setAddress] = useState({ street: '', city: '', zip: '', phone: '' });
     const [savedAddresses, setSavedAddresses] = useState([]);
     const [selectedAddressIndex, setSelectedAddressIndex] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState('COD'); // COD or Razorpay
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Load Razorpay Script
+    const loadRazorpay = () => {
+        return new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
 
     useEffect(() => {
         if (!token) return;
@@ -51,52 +63,140 @@ const OrderOverview = () => {
         }
 
         try {
-            const orderData = {
-                items: cart.map(item => ({
-                    item: item._id,
-                    qty: item.qty,
-                    price: item.price,
-                    name: item.name
-                })),
-                total,
-                address,
-                paymentMethod: 'COD'
-            };
+            // Check Payment Method
+            if (paymentMethod === 'Razorpay') {
+                const res = await loadRazorpay();
+                if (!res) {
+                    setError('Razorpay SDK failed to load. Are you online?');
+                    setIsLoading(false);
+                    return;
+                }
 
-            const orderRes = await fetch(`${API_URL}/api/orders`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-auth-token': token || localStorage.getItem('token')
-                },
-                body: JSON.stringify(orderData)
-            });
+                // Create Order on Server
+                const result = await fetch(`${API_URL}/api/payment/create-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': token
+                    },
+                    body: JSON.stringify({ amount: total }) // Server expects amount
+                });
 
-            if (!orderRes.ok) {
-                const data = await orderRes.json();
-                throw new Error(data.message || "Failed to create order");
+                if (!result.ok) {
+                    throw new Error('Server error creating Razorpay order');
+                }
+
+                const { id: order_id, amount, currency } = await result.json();
+
+                const options = {
+                    key: "YOUR_RAZORPAY_KEY_ID", // Will be replaced or fetched if we want to be dynamic, but usually key_id is public. Wait, better to fetch key from server or env? Env is safe for public key. 
+                    // Actually React env variables need REACT_APP_ prefix or VITE_ prefix. 
+                    // Let's assume the user puts it in the code or we fetch it? 
+                    // For now, I'll assume I should fetch the key or just hardcode it if the user provided it. 
+                    // BUT security-wise, key_ID is public. 
+                    // Since I don't have it, I will fetch it from an endpoint if possible, or just put a placeholder that user can replace.
+                    // Or I can add an endpoint to get the key.
+                    // For simplicity, let's assume the user will replace "YOUR_LIVE_KEY_ID" here or I add a config endpoint.
+                    // I'll add a quick endpoint to get the key id in payment.js so I don't hardcode it in client.
+                    amount: amount.toString(),
+                    currency: currency,
+                    name: "Nanosoup",
+                    description: "Food Order",
+                    order_id: order_id,
+                    handler: async function (response) {
+                        await verifyPayment(response);
+                    },
+                    prefill: {
+                        name: user?.username || '',
+                        email: user?.email || '',
+                        contact: address.phone || ''
+                    },
+                    theme: {
+                        color: "#EF4444"
+                    },
+                    modal: {
+                        ondismiss: function () {
+                            setError("Payment Failed. Please try again later.");
+                            setIsLoading(false);
+                        }
+                    }
+                };
+
+                // Fetch Key ID from server to avoid hardcoding
+                const keyRes = await fetch(`${API_URL}/api/payment/key`, { headers: { 'x-auth-token': token } });
+                const keyData = await keyRes.json();
+                options.key = keyData.key;
+
+                const paymentObject = new window.Razorpay(options);
+                paymentObject.open();
+                setIsLoading(false); // Modal is open, so we stop loading spinner on our UI
+            } else {
+                // COD Flow
+                await createOrderInDb({});
             }
-
-            const order = await orderRes.json();
-
-            // Clear cart and redirect to orders page or tracking
-            clearCart();
-            navigate(`/delivery-details/${order._id}`, { state: { paymentSuccess: true } });
 
         } catch (err) {
             setError(err.message || "Order placement failed. Please try again.");
             console.error(err);
-        } finally {
             setIsLoading(false);
         }
+    };
+
+    const verifyPayment = async (paymentData) => {
+        setIsLoading(true);
+        try {
+            await createOrderInDb({
+                paymentMethod: 'Razorpay',
+                paymentInfo: paymentData
+            });
+        } catch (err) {
+            setError("Payment verified but order creation failed: " + err.message);
+            setIsLoading(false);
+        }
+    };
+
+    const createOrderInDb = async (extraData = {}) => {
+        const orderData = {
+            items: cart.map(item => ({
+                item: item._id,
+                qty: item.qty,
+                price: item.price,
+                name: item.name
+            })),
+            total,
+            address,
+            paymentMethod: paymentMethod, // 'COD' or 'Razorpay'
+            ...extraData
+        };
+
+        const orderRes = await fetch(`${API_URL}/api/orders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token || localStorage.getItem('token')
+            },
+            body: JSON.stringify(orderData)
+        });
+
+        if (!orderRes.ok) {
+            const data = await orderRes.json();
+            throw new Error(data.message || "Failed to create order");
+        }
+
+        const order = await orderRes.json();
+
+        // Clear cart and redirect to orders page or tracking
+        clearCart();
+        navigate(`/delivery-details/${order._id}`, { state: { paymentSuccess: true } });
+        setIsLoading(false);
     };
 
     if (isLoading) {
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center pt-20">
                 <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-500 mb-4"></div>
-                <h2 className="text-2xl font-bold text-gray-800">Placing Order...</h2>
-                <p className="text-gray-500 mt-2">Please do not refresh the page</p>
+                <h2 className="text-2xl font-bold text-gray-800">Processing...</h2>
+                <p className="text-gray-500 mt-2">Please do not close this window</p>
             </div>
         );
     }
@@ -324,14 +424,36 @@ const OrderOverview = () => {
                                 </div>
                             </div>
 
+                            <div className="mb-6">
+                                <h3 className="font-bold text-gray-700 mb-3 block">Payment Method</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaymentMethod('COD')}
+                                        className={`py-3 px-4 rounded-xl border font-bold text-sm transition-all ${paymentMethod === 'COD' ? 'bg-red-50 border-red-500 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                                    >
+                                        💵 COD
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaymentMethod('Razorpay')}
+                                        className={`py-3 px-4 rounded-xl border font-bold text-sm transition-all ${paymentMethod === 'Razorpay' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                                    >
+                                        💳 Razorpay
+                                    </button>
+                                </div>
+                            </div>
+
                             <button
                                 type="submit"
                                 form="checkout-form"
                                 className="w-full py-4 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 transition-all transform hover:-translate-y-1 block text-center"
                             >
-                                Place Order (COD)
+                                {paymentMethod === 'COD' ? 'Place Order (COD)' : 'Pay & Place Order'}
                             </button>
-                            <p className="text-xs text-center text-gray-400 mt-4">Cash on Delivery available</p>
+                            <p className="text-xs text-center text-gray-400 mt-4">
+                                {paymentMethod === 'COD' ? 'Cash on Delivery available' : 'Secure payment via Razorpay'}
+                            </p>
                         </div>
                     </div>
                 </div>

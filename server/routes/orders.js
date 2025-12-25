@@ -8,20 +8,48 @@ const authMiddleware = require('../middleware/authMiddleware');
 // @desc    Create a new order
 // @access  Private
 router.post('/', authMiddleware, async (req, res) => {
-    const { items, total, address } = req.body;
+    const { items, total, address, paymentMethod, paymentInfo } = req.body;
 
     try {
         // Fetch current delivery fee from global settings
         const settings = await Settings.findOne();
         const currentDeliveryFee = settings ? settings.deliveryFee : 40; // Default to 40 if not set
 
+        // Verify Razorpay Payment if method is Razorpay
+        if (paymentMethod === 'Razorpay') {
+            const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = paymentInfo;
+
+            const crypto = require('crypto');
+            const shasum = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
+            shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+            const digest = shasum.digest('hex');
+
+            if (digest !== razorpay_signature) {
+                return res.status(400).json({ msg: 'Transaction not legit!' });
+            }
+        }
+
         const newOrder = new Order({
             user: req.user.id,
             items,
             total,
             address,
-            deliveryFee: currentDeliveryFee
+            deliveryFee: currentDeliveryFee,
+            paymentInfo: paymentMethod === 'Razorpay' ? {
+                id: paymentInfo.razorpay_payment_id,
+                status: 'Paid' // Assumed paid if signature verifies
+            } : {},
+            status: paymentMethod === 'Razorpay' ? 'Preparing' : 'Processing' // Auto-advance if paid? Or keep Processing. Let's keep Processing usually, but Paid orders are confirmed.
         });
+
+        // If paid, maybe set status to 'Preparing' directly? 
+        // For now, let's look at the schema defaults. Default is 'Processing'. 
+        // Let's set it to 'Processing' but with payment status.
+        if (paymentMethod === 'Razorpay') {
+            newOrder.status = 'Preparing'; // Auto-confirm paid orders? Or just 'Processing'? Let's go with 'Processing' to be safe, but typically paid = confirmed.
+            // Actually, the user flow usually expects "Processing" until the restaurant accepts it. 
+            newOrder.status = 'Processing';
+        }
 
         const order = await newOrder.save();
         res.json(order);
