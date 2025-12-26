@@ -28,14 +28,23 @@ export const AuthProvider = ({ children }) => {
             });
             const data = await response.json();
 
-            if (!response.ok) throw new Error(data.message);
+            if (!response.ok) {
+                console.error('Login failed:', data);
+                throw new Error(data.message || 'Login failed');
+            }
 
+            console.log('Login successful:', data.user);
             setUser(data.user);
             setToken(data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('token', data.token);
             return { success: true, user: data.user };
         } catch (error) {
+            console.error('Login Error Catch:', error);
+            // Check for network error (fetch throws TypeError on network failure)
+            if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+                return { success: false, message: 'Unable to connect to server. Is it running?' };
+            }
             return { success: false, message: error.message };
         }
     };

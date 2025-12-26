@@ -14,44 +14,52 @@ const AuthModal = ({ isOpen, onClose }) => {
     const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
     const [mobile, setMobile] = useState('');
+    const [loading, setLoading] = useState(false);
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
 
-        let result;
-        if (isLogin) {
-            result = await login(email, password);
-        } else {
-            // Mobile Number Validation
-            if (mobile.length !== 10) {
-                setError('Mobile number must be exactly 10 digits.');
-                return;
-            }
-            // Default registration is always 'user'
-            // Employees/Admins must be created via Admin Panel or Seeding
-            result = await register(username, email, password, 'user', mobile);
-        }
-
-        if (result.success) {
-            onClose();
-            // Intelligent Redirection based on Role
-            const role = result.user?.role;
-            const userEmail = result.user?.email || '';
-
-            if (role === 'admin') {
-                navigate('/admin');
-            } else if (role === 'rider' || role === 'employee' && userEmail.includes('rider')) {
-                navigate('/rider');
-            } else if (role === 'chef' || role === 'employee' && userEmail.includes('chef')) {
-                navigate('/chef');
+        try {
+            let result;
+            if (isLogin) {
+                result = await login(email, password);
             } else {
-                // Regular user stays on current page (usually home)
+                // Mobile Number Validation
+                if (mobile.length !== 10) {
+                    setError('Mobile number must be exactly 10 digits.');
+                    setLoading(false);
+                    return;
+                }
+                // Default registration is always 'user'
+                result = await register(username, email, password, 'user', mobile);
             }
-        } else {
-            setError(result.message);
+
+            if (result.success) {
+                onClose();
+                // Intelligent Redirection based on Role
+                const role = result.user?.role;
+                const userEmail = result.user?.email || '';
+
+                if (role === 'admin') {
+                    navigate('/admin');
+                } else if (role === 'rider' || role === 'employee' && userEmail.includes('rider')) {
+                    navigate('/rider');
+                } else if (role === 'chef' || role === 'employee' && userEmail.includes('chef')) {
+                    navigate('/chef');
+                } else {
+                    // Regular user stays on current page (usually home)
+                }
+            } else {
+                setError(result.message);
+            }
+        } catch (err) {
+            setError(err.message || 'An unexpected error occurred');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -151,9 +159,10 @@ const AuthModal = ({ isOpen, onClose }) => {
 
                     <button
                         type="submit"
-                        className="w-full py-3 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 bg-red-600 shadow-red-200 hover:bg-red-700"
+                        disabled={loading}
+                        className={`w-full py-3 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 shadow-red-200 hover:bg-red-700'}`}
                     >
-                        {isLogin ? 'Sign In' : 'Create Account'}
+                        {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
                     </button>
                 </form>
 
