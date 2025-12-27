@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import API_URL from '../config';
 
 const ChefDashboard = () => {
     const { user, logout } = useAuth();
@@ -19,7 +20,6 @@ const ChefDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'error' }
     const [newLeave, setNewLeave] = useState({ type: 'Casual Leave', startDate: '', endDate: '', reason: '' });
-    const API_URL = 'http://localhost:5000'; // Or import from config if available, but hardcoding for now based on context
 
     React.useEffect(() => {
         fetchLeaves();

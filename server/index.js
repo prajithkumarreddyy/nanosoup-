@@ -32,9 +32,7 @@ const connectDB = async () => {
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI);
         console.log(`MongoDB Connected: ${conn.connection.host}`);
-
-        // Seed data carefully to prevent data loss
-        await seedData();
+        // seedData moved to background to prevent startup block
     } catch (error) {
         console.error(`Error: ${error.message}`);
         process.exit(1);
@@ -46,7 +44,32 @@ const seedData = async () => {
     try {
         const count = await FoodItem.countDocuments();
         if (count > 0) {
-            console.log('Database already has data. Skipping seed to preserve changes.');
+            console.log('Database already has data. Checking for image optimizations in background...');
+            // Optimize existing images - Only fetch items that need optimization
+            // Find items with unsplash images that do NOT have w=600
+            const foodsToOptimize = await FoodItem.find({
+                imageUrl: { $regex: 'unsplash.com', $not: /w=600/ }
+            });
+
+            if (foodsToOptimize.length > 0) {
+                console.log(`Found ${foodsToOptimize.length} images to optimize.`);
+                let updatedCount = 0;
+                for (const food of foodsToOptimize) {
+                    let newUrl = food.imageUrl.replace(/w=\d+/, 'w=600');
+                    // If no w= param existed, append it (simple check)
+                    if (!newUrl.includes('w=600')) {
+                        if (newUrl.includes('?')) newUrl += '&w=600';
+                        else newUrl += '?w=600';
+                    }
+
+                    if (newUrl !== food.imageUrl) {
+                        food.imageUrl = newUrl;
+                        await food.save();
+                        updatedCount++;
+                    }
+                }
+                if (updatedCount > 0) console.log(`Optimized ${updatedCount} images to w=600`);
+            }
             return;
         }
 
@@ -62,7 +85,7 @@ const seedData = async () => {
                 description: "Creamy arborio rice with premium truffle oil and wild mushrooms.",
                 price: 450,
                 category: "Italian",
-                imageUrl: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?q=80&w=2070&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
             {
@@ -70,7 +93,7 @@ const seedData = async () => {
                 description: "Classic tomato sauce, fresh mozzarella, and basil on sourdough crust.",
                 price: 350,
                 category: "Italian",
-                imageUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?q=80&w=2069&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
             {
@@ -78,7 +101,7 @@ const seedData = async () => {
                 description: "Fusilli pasta tossed in fresh basil pesto with cherry tomatoes and pine nuts.",
                 price: 380,
                 category: "Italian",
-                imageUrl: "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?q=80&w=2070&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
             {
@@ -86,7 +109,7 @@ const seedData = async () => {
                 description: "Layered pasta with rich meat sauce, bechamel, and melted cheese.",
                 price: 480,
                 category: "Italian",
-                imageUrl: "https://images.unsplash.com/photo-1619895092538-128341789043?q=80&w=2070&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1619895092538-128341789043?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: false
             },
 
@@ -96,7 +119,7 @@ const seedData = async () => {
                 description: "Rich miso broth with chashu pork, soft-boiled egg, and green onions.",
                 price: 380,
                 category: "Japanese",
-                imageUrl: "https://images.unsplash.com/photo-1557872943-16a5ac26437e?q=80&w=2031&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1557872943-16a5ac26437e?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: false
             },
             {
@@ -104,7 +127,7 @@ const seedData = async () => {
                 description: "Assorted fresh nigiri and maki rolls served with wasabi and ginger.",
                 price: 750,
                 category: "Japanese",
-                imageUrl: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=2070&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: false
             },
             {
@@ -112,7 +135,7 @@ const seedData = async () => {
                 description: "Crispy battered seasonal vegetables served with tentsuyu dipping sauce.",
                 price: 320,
                 category: "Japanese",
-                imageUrl: "https://images.unsplash.com/photo-1615361200141-f45040f367be?q=80&w=1964&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1615361200141-f45040f367be?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
 
@@ -122,7 +145,7 @@ const seedData = async () => {
                 description: "Tender chicken in a rich, creamy tomato and cashew sauce.",
                 price: 420,
                 category: "Indian",
-                imageUrl: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?q=80&w=2070&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: false
             },
             {
@@ -130,7 +153,7 @@ const seedData = async () => {
                 description: "Grilled paneer cubes in spicy gravy.",
                 price: 390,
                 category: "Indian",
-                imageUrl: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&w=2071&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
             {
@@ -138,7 +161,7 @@ const seedData = async () => {
                 description: "Fragrant basmati rice cooked with aromatic spices and marinated vegetables.",
                 price: 350,
                 category: "Indian",
-                imageUrl: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=2070&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
             {
@@ -146,7 +169,7 @@ const seedData = async () => {
                 description: "Soft, oven-baked flatbread topped with garlic and butter.",
                 price: 60,
                 category: "Indian",
-                imageUrl: "https://images.unsplash.com/photo-1630409351241-e90e7f5e478d?q=80&w=1974&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1630409351241-e90e7f5e478d?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
             {
@@ -154,7 +177,7 @@ const seedData = async () => {
                 description: "Delicious steamed rice test item.",
                 price: 1,
                 category: "Indian",
-                imageUrl: "https://images.unsplash.com/photo-1512058564366-18510be2db19?q=80&w=2072&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1512058564366-18510be2db19?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
 
@@ -164,7 +187,7 @@ const seedData = async () => {
                 description: "Three soft corn tortillas with carne asada, onions, and cilantro.",
                 price: 299,
                 category: "Mexican",
-                imageUrl: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?q=80&w=2070&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: false
             },
             {
@@ -172,7 +195,7 @@ const seedData = async () => {
                 description: "Rice, beans, grilled chicken, salsa, guacamole, and cheese in a bowl.",
                 price: 340,
                 category: "Mexican",
-                imageUrl: "https://images.unsplash.com/photo-1543353071-873f17a7a088?q=80&w=2070&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1543353071-873f17a7a088?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: false
             },
 
@@ -182,7 +205,7 @@ const seedData = async () => {
                 description: "Stir-fried chicken with peanuts, vegetables, and chili peppers.",
                 price: 380,
                 category: "Chinese",
-                imageUrl: "https://images.unsplash.com/photo-1525755662778-989d0524087e?q=80&w=1974&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1525755662778-989d0524087e?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: false
             },
             {
@@ -190,7 +213,7 @@ const seedData = async () => {
                 description: "Wok-tossed noodles with crunchy vegetables and soy sauce.",
                 price: 250,
                 category: "Chinese",
-                imageUrl: "https://images.unsplash.com/photo-1585032226651-759b368d7246?q=80&w=1892&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1585032226651-759b368d7246?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
 
@@ -200,7 +223,7 @@ const seedData = async () => {
                 description: "Fudgy chocolate brownie served with vanilla ice cream.",
                 price: 180,
                 category: "Desserts",
-                imageUrl: "https://images.unsplash.com/photo-1606313564200-e75d5e30476d?q=80&w=1887&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1606313564200-e75d5e30476d?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
             {
@@ -208,7 +231,7 @@ const seedData = async () => {
                 description: "Classic Italian dessert with coffee-soaked ladyfingers and mascarpone cream.",
                 price: 250,
                 category: "Desserts",
-                imageUrl: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?q=80&w=1974&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             },
             {
@@ -216,7 +239,7 @@ const seedData = async () => {
                 description: "Rich and creamy cheesecake with a graham cracker crust.",
                 price: 280,
                 category: "Desserts",
-                imageUrl: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?q=80&w=2070&auto=format&fit=crop",
+                imageUrl: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?q=80&w=600&auto=format&fit=crop",
                 isVegetarian: true
             }
         ];
@@ -253,5 +276,8 @@ connectDB().then(() => {
 
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
+
+        // Run seed data in background after server is up
+        seedData().catch(err => console.error("Background seed error:", err));
     });
 });

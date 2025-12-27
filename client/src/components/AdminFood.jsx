@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import API_URL from '../config';
 
 const AdminFood = () => {
     const { token } = useAuth();
@@ -29,8 +30,8 @@ const AdminFood = () => {
         try {
             setLoading(true);
             const [foodRes, ensureSettingsRes] = await Promise.all([
-                fetch('http://localhost:5000/api/food'),
-                fetch('http://localhost:5000/api/settings') // Ensures settings exist
+                fetch(`${API_URL}/api/food`),
+                fetch(`${API_URL}/api/settings`) // Ensures settings exist
             ]);
 
             const foodData = await foodRes.json();
@@ -49,7 +50,7 @@ const AdminFood = () => {
     const handleSettingsUpdate = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://localhost:5000/api/settings', {
+            const res = await fetch(`${API_URL}/api/settings`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify(settings)
@@ -65,7 +66,7 @@ const AdminFood = () => {
     const handleDeleteFood = async (id) => {
         if (!window.confirm("Are you sure you want to delete this item?")) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/food/${id}`, {
+            const res = await fetch(`${API_URL}/api/food/${id}`, {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }
             });
@@ -80,7 +81,7 @@ const AdminFood = () => {
 
     const toggleStock = async (food) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/food/${food._id}`, {
+            const res = await fetch(`${API_URL}/api/food/${food._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({ inStock: !food.inStock })
@@ -106,7 +107,7 @@ const AdminFood = () => {
 
     const handleEditSave = async () => {
         try {
-            const res = await fetch(`http://localhost:5000/api/food/${editId}`, {
+            const res = await fetch(`${API_URL}/api/food/${editId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify(editData)
@@ -142,7 +143,7 @@ const AdminFood = () => {
 
     const handleAddSave = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/food', {
+            const res = await fetch(`${API_URL}/api/food`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify(newData)

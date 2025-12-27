@@ -53,9 +53,10 @@ const Menu = ({ onOpenAuth }) => {
         };
 
         fetchFood(true); // Initial fetch
-        const interval = setInterval(() => fetchFood(false), 5000); // Poll every 5s
+        // Polling removed for performance. Re-enable if real-time menu updates are critical.
+        // const interval = setInterval(() => fetchFood(false), 5000); 
 
-        return () => clearInterval(interval);
+        return () => { }; // clearfix
     }, []);
 
     const categories = ['All', ...new Set(foods.map(item => item.category))];
